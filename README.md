@@ -27,9 +27,10 @@
 9. [在 ChimeraX 中標出正確位置](#9-在-chimerax-中標出正確位置)
 10. [在 PyMOL 中標出正確位置](#10-在-pymol-中標出正確位置)
 11. [在 Python 或 Jupyter／Colab 中使用](#11-在-python-或-jupytercolab-中使用)
-12. [常見問題](#12-常見問題)
-13. [這個工具不做的事](#13-這個工具不做的事)
-14. [引用與授權](#14-引用與授權)
+12. [讓 AI 助理使用（MCP 伺服器）](#12-讓-ai-助理使用mcp-伺服器)
+13. [常見問題](#13-常見問題)
+14. [這個工具不做的事](#14-這個工具不做的事)
+15. [引用與授權](#15-引用與授權)
 
 ---
 
@@ -547,7 +548,67 @@ with open("markers.pml", "w") as fh:       # 在 PyMOL 中執行（第 10 節）
 
 ---
 
-### 12. 常見問題
+### 12. 讓 AI 助理使用（MCP 伺服器）
+
+[MCP（Model Context Protocol）](https://modelcontextprotocol.io/) 讓 AI 助理（例如 Claude Code、Claude Desktop）可以呼叫外部工具。加入這個伺服器後，當你問 AI「論文寫的 E6V 在 AlphaFold 模型上是哪個位置？」，AI 會先用工具檢查編號，而不是直接拿錯的位置來回答。
+
+**需要：** [uv](https://docs.astral.sh/uv/)。它會自動下載工具和需要的 Python 版本（MCP 套件需要 Python 3.10 以上，即使你的電腦是 Python 3.9 也沒關係）。安裝 uv：
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+（Windows 請在 PowerShell 執行 `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`；用 Homebrew 的話是 `brew install uv`。）
+
+#### 加入 Claude Code
+
+```bash
+claude mcp add af-confidence -- uvx --python 3.12 --from "af-confidence[mcp] @ git+https://github.com/wangnick1004/af-confidence" af-confidence-mcp
+```
+
+加上 `-s user`（寫在 `add` 後面）可以讓所有專案都能使用。輸入 `claude mcp list`，看到 `af-confidence ... Connected` 就成功了。這個指令已在 Claude Code 中實際測試過。
+
+#### 加入 Claude Desktop
+
+在 Claude Desktop 的設定檔中加入以下內容（Mac：`~/Library/Application Support/Claude/claude_desktop_config.json`；Windows：`%APPDATA%\Claude\claude_desktop_config.json`），然後重新啟動 Claude Desktop：
+
+```json
+{
+  "mcpServers": {
+    "af-confidence": {
+      "command": "uvx",
+      "args": ["--python", "3.12",
+               "--from", "af-confidence[mcp] @ git+https://github.com/wangnick1004/af-confidence",
+               "af-confidence-mcp"]
+    }
+  }
+}
+```
+
+如果 Claude Desktop 找不到 `uvx`，把 `"command"` 改成完整路徑（在終端機輸入 `which uvx` 可以查到，例如 `/Users/你的名字/.local/bin/uvx`）。Claude Desktop 的設定方式未在本專案中實際測試，伺服器本身已用 MCP 用戶端測試。
+
+#### 提供給 AI 的工具
+
+| 工具 | 用途 |
+|---|---|
+| `check_variants` | 輸入 `{蛋白質: [突變]}`，回傳每個突變的狀態、最佳建議的位置與證據強度、pLDDT，以及警告（例如 AFDB 模型落後 UniProt 序列） |
+| `export_markers` | 產生 AFDB 自訂標註（第 8 節）、ChimeraX 腳本（第 9 節）或 PyMOL 腳本（第 10 節） |
+
+兩個工具都只讀取資料，不會修改任何東西。伺服器也會告訴 AI 怎麼使用這些結果：同一來源的突變要一起檢查、medium 和 weak 的結果不能說成確定、工具不判斷突變是否致病。
+
+**設定（選用）：** 用環境變數 `AF_CONFIDENCE_CACHE` 指定快取資料夾、`AF_CONFIDENCE_OFFLINE=1` 只使用已下載的資料。在 Claude Code 中用 `-e` 設定，例如 `claude mcp add af-confidence -e AF_CONFIDENCE_OFFLINE=1 -- uvx ...`。
+
+已經有 Python 3.10 以上的話，也可以直接安裝後使用 `af-confidence-mcp` 指令：
+
+```bash
+python3 -m pip install "af-confidence[mcp] @ git+https://github.com/wangnick1004/af-confidence"
+```
+
+**注意：** AI 助理仍可能誤解或誤述工具的結果。重要的結論，請看工具的原始輸出或回到文獻確認。
+
+---
+
+### 13. 常見問題
 
 **Q：出現 `command not found: python3` 或「找不到指令」**
 A：電腦沒有安裝 Python，或 Windows 使用者沒有改用 `py`。見[第 2 節](#2-準備確認電腦有-python)。
@@ -584,7 +645,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ---
 
-### 13. 這個工具不做的事
+### 14. 這個工具不做的事
 
 - **不判斷突變是否致病。** AFDB 的模型是正常（野生型）蛋白質，看不出突變後的結構變化。
 - **不重新評估結構的可信度。** pLDDT 照 AFDB 原值顯示。
@@ -596,7 +657,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ---
 
-### 14. 引用與授權
+### 15. 引用與授權
 
 - 結構預測資料來自 AlphaFold Protein Structure Database（EMBL-EBI 與 Google DeepMind），採用 CC-BY-4.0 授權。使用結果時，請引用 AlphaFold 與 AlphaFold DB 的論文。
 - 加工標註與序列資料來自 UniProt。
@@ -660,7 +721,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 | 最終檢查 | 從全新 clone 驗證整個 repo | 修正 AFDB 查無模型時未快取（離線結果不一致）、驗證抽樣在不同執行間不穩定兩個問題 |
 | 開源配備 | 自動測試、版本發布、測試補強 | GitHub Actions（3 種作業系統 × 5 個 Python 版本，加每週的線上 API 檢查）、CHANGELOG、貢獻指南、v0.1.0 版本標籤；補測試讓覆蓋率從 95% 提高到 99%；修正非 ASCII 字元在 Windows 終端機可能造成當機的問題 |
 
-| 工作流程整合 | 把工具接進研究者使用 AlphaFold 的日常流程 | 調查研究者的日常工作流程（見下一節）；完成四項整合：AFDB 自訂標註（`--format afdb`），讓校正後的位置直接顯示在 AFDB 官方的結構檢視器上；ChimeraX 腳本（`--format chimerax`），開啟正確的模型並標出位置（指令依官方使用手冊撰寫）；Python 函式庫介面與 Colab 範例筆記本，讓 Jupyter 使用者能把結果直接放進 pandas 分析；PyMOL 腳本，並在開源版 PyMOL 中實際執行測試 |
+| 工作流程整合 | 把工具接進研究者使用 AlphaFold 的日常流程 | 調查研究者的日常工作流程（見下一節）；完成全部五項整合：AFDB 自訂標註（`--format afdb`），讓校正後的位置直接顯示在 AFDB 官方的結構檢視器上；ChimeraX 腳本（`--format chimerax`），開啟正確的模型並標出位置（指令依官方使用手冊撰寫）；Python 函式庫介面與 Colab 範例筆記本，讓 Jupyter 使用者能把結果直接放進 pandas 分析；PyMOL 腳本，並在開源版 PyMOL 中實際執行測試；MCP 伺服器，讓 AI 助理在討論突變位置前先檢查編號 |
 
 `docs/` 中的每日報告保留當天的狀態與查證紀錄，有些說法後來已修正；**以本 README 為準**。
 
@@ -674,17 +735,17 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 | ChimeraX 腳本（`--format chimerax`） | 下載模型、視覺化 | ✅ 完成（見[第 9 節](#9-在-chimerax-中標出正確位置)；尚待在實際 ChimeraX 中測試） |
 | Python 函式庫介面與 Colab 範例 | 批次處理 | ✅ 完成（見[第 10 節](#11-在-python-或-jupytercolab-中使用)；筆記本每週由 CI 實際執行一次） |
 | PyMOL 腳本（`--format pymol`） | 下載模型、視覺化 | ✅ 完成（見[第 10 節](#10-在-pymol-中標出正確位置)；在開源版 PyMOL 中實際執行測試） |
-| MCP 伺服器 | AI 助理 | 規劃中 |
+| MCP 伺服器（`af-confidence-mcp`） | AI 助理 | ✅ 完成（見[第 12 節](#12-讓-ai-助理使用mcp-伺服器)；以真正的 MCP 用戶端與 Claude Code 測試） |
 
 ### 驗證方式
 
-- **自動化測試**：164 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；PyMOL 腳本另由一個獨立的 job 在開源版 PyMOL 中實際執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，並實際執行一次 Colab 範例筆記本和 PyMOL 腳本，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- **自動化測試**：179 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；PyMOL 腳本與 MCP 伺服器另由一個獨立的 job 實際執行（在開源版 PyMOL 中執行腳本、用真正的 MCP 用戶端呼叫伺服器）；另有每週一次對真實 AFDB 與 UniProt API 的檢查，並實際執行一次 Colab 範例筆記本和 PyMOL 腳本，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 - **真實資料驗證**：`benchmark/`，固定亂數種子、可重現。
 - **人工核對**：示範案例的 pLDDT 與序列，對照 AFDB 與 UniProt 網站；ProtVar 行為以實際操作截圖記錄。
 
 ### 已知限制與未來規劃
 
-限制見 [這個工具不做的事](#13-這個工具不做的事)。未來可能的方向（尚未排程）：
+限制見 [這個工具不做的事](#14-這個工具不做的事)。未來可能的方向（尚未排程）：
 
 - 上一節列出的其他工作流程整合
 - 網頁介面（靜態頁面，放在 GitHub Pages），讓不用終端機的人也能貼上清單使用

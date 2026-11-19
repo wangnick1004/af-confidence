@@ -39,4 +39,11 @@ python3 -m pytest
   python3 -m pytest tests/test_pymol.py
   ```
 
+- 修改 MCP 伺服器後，請用真正的 MCP 用戶端測試（需要 Python 3.10+）：
+
+  ```bash
+  python3 -m pip install -e ".[mcp]" pytest
+  python3 -m pytest tests/test_mcp.py tests/test_mcp_tools.py
+  ```
+
 - 維持工具的範圍：只做編號對應，不重新判讀 pLDDT，也不預測突變的影響。

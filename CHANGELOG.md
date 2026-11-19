@@ -11,6 +11,10 @@
 - 新輸出格式 `--format chimerax`：產生 ChimeraX 腳本（`.cxc`），以帶版本號的模型編號開啟工具比對用的
   同一個 AlphaFold DB 模型，依四種軌跡為檢查過的位置顯示側鏈、上色、加標籤，並建立具名的選取範圍；
   多個模型時並排顯示。指令依 ChimeraX 官方使用手冊撰寫，尚未在實際的 ChimeraX 中執行過。
+- MCP 伺服器 `af-confidence-mcp`（選用安裝 `af-confidence[mcp]`，需要 Python 3.10+，使用官方 `mcp` SDK 2.x）：
+  提供 `check_variants` 與 `export_markers` 兩個唯讀工具，並附上給 AI 的使用說明（先檢查再討論位置、
+  同一來源的突變一起送出、medium 與 weak 不可說成確定）。可用 `uvx --python 3.12` 直接從 GitHub 執行；
+  已用真正的 MCP 用戶端與 Claude Code（`claude mcp add`，顯示 Connected）實測，並加入 CI。
 - 新輸出格式 `--format pymol`：產生 PyMOL 腳本（`.pml`），從 AlphaFold DB 提供的模型檔網址載入工具比對用的
   同一個模型，依 AlphaFold DB 官方配色為 pLDDT 上色，標記檢查過的位置（側鏈、小球、標籤、具名選取範圍），
   多個模型時分格顯示。已在開源版 PyMOL 3.2 中實際執行測試（`scripts/check_pymol.py`），並加入 CI；
