@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "af-confidence"
+version = "0.1.0"
+description = "Map literature protein variants onto AlphaFold DB models and catch numbering mistakes"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+af-confidence = "af_confidence.cli:main"
+
+[tool.setuptools]
+packages = ["af_confidence"]

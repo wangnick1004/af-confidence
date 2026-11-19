@@ -1,2 +1,4 @@
-requests>=2.31
+# The tool itself needs no third-party packages (see pyproject.toml).
+# Only needed for scripts/day1_feasibility.py and for running the tests:
 biopython>=1.83
+pytest>=7
