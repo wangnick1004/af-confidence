@@ -1,9 +1,13 @@
-# APP (UniProt P05067) variants as usually written in the Alzheimer's literature, i.e. in
-# amyloid-beta (Abeta) numbering, where Abeta residue 1 = APP770 residue 672.
-# UniProt natural variants at 692/693/694 name Flemish, Dutch and Iowa; the names Icelandic
-# and Arctic come from the literature (see docs/day3_report.md for sources).
-A2T     # Icelandic (protective) = A673T in APP770 numbering
-A21G    # Flemish  = A692G
-E22G    # Arctic   = E693G
-E22Q    # Dutch    = E693Q
-D23N    # Iowa     = D694N
+# APP（UniProt P05067）的突變，依阿茲海默症文獻常見的 β-類澱粉蛋白（Aβ）編號書寫。
+# Aβ 的第 1 個胺基酸 = APP770 的第 672 個，所以 Aβ 編號加 671 才是 AlphaFold DB 模型上的位置。
+# UniProt 把 Aβ40、Aβ42、C99 標註為從第 672 個開始的加工片段，工具據此找出 +671 的位移。
+#
+# 示範重點：D23N 照原寫法也「對得上」，因為 APP770 的第 23 個剛好也是 D；
+# 只有整份清單一起檢查，才看得出它應該是 D694N（工具會標示 !?）。
+#
+# 突變    名稱與出處                                   APP770 編號
+A2T       # Icelandic（保護性）；Jonsson et al., Nature 2012, doi:10.1038/nature11283     A673T（UniProt 無此紀錄）
+A21G      # Flemish；UniProt VAR_000016                                                  A692G
+E22G      # Arctic；Nilsberth et al., Nat Neurosci 2001, PMID 11528419；UniProt VAR_014215  E693G
+E22Q      # Dutch；UniProt VAR_000017                                                    E693Q
+D23N      # Iowa；UniProt VAR_014217                                                     D694N

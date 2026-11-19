@@ -119,3 +119,11 @@ P01009 E342K
 - 依你的校對結果修正
 - 寫影片逐字稿初稿（8 分鐘以內，約 1600 字），每個科學主張標上對應的來源編號
 - 查證主張第 15、16 條，以及「低 pLDDT 與無序區」（限制段落用）
+
+---
+
+## 後續查證（2026-11-19，工具完成後補記）
+
+- **主張 15（E693G 稱為 Arctic）：✅ 證實。** Nilsberth et al., "The 'Arctic' APP mutation (E693G) causes Alzheimer's disease by enhanced Aβ protofibril formation", *Nature Neuroscience* 4:887–893 (2001), PMID 11528419, doi:10.1038/nn0901-887。UniProt 為 E693G（VAR_014215）附上的文獻正是這篇，但 UniProt 本身沒有標註 Arctic 這個名稱。
+- **主張 16（A673T 是冰島族群的保護性突變）：✅ 證實。** Jonsson et al., "A mutation in APP protects against Alzheimer's disease and age-related cognitive decline", *Nature* 488:96–99 (2012), doi:10.1038/nature11283。UniProt 沒有這筆天然變異的紀錄。
+- 出處已寫進 `examples/app_abeta_numbering.txt`。

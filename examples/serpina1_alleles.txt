@@ -1,3 +1,6 @@
-# SERPINA1 (UniProt P01009) deficiency alleles in the traditional mature-protein numbering
-E342K   # Z allele  (p.Glu366Lys)
-E264V   # S allele  (p.Glu288Val)
+# α1-抗胰蛋白酶（SERPINA1，UniProt P01009）缺乏症的對偶基因，依臨床文獻常見的
+# 成熟蛋白質編號書寫：不算前 24 個胺基酸的訊號胜肽，所以要加 24 才是模型上的位置。
+#
+# 突變    名稱與出處                    標準（HGVS）編號
+E342K     # Z 型；UniProt VAR_007004      p.Glu366Lys
+E264V     # S 型；UniProt VAR_007000      p.Glu288Val

@@ -1,5 +1,8 @@
-# variants collected from several papers
-HBB      E6V            # sickle cell, legacy numbering
-SERPINA1 E342K, E264V   # Z and S alleles
-P04637   R175H R72P
-TTN      R100W          # titin: no AlphaFold DB model
+# 示範：從多篇文獻整理、混合多個蛋白質與多種編號問題的清單。
+# 每行開頭是蛋白質（基因名稱或 UniProt 編號），後面是突變；# 之後是註解。
+#
+HBB      E6V            # 鐮刀型貧血 HbS，傳統編號（不算起始甲硫胺酸）；標準編號 p.Glu7Val，UniProt VAR_002863
+SERPINA1 E342K, E264V   # Z 型與 S 型，成熟蛋白質編號；標準編號 E366K、E288V，UniProt VAR_007004、VAR_007000
+P04637   R175H R72P     # TP53：R175H 已是標準編號（UniProt VAR_005932）；
+                        # R72P 是故意寫反的錯誤示範，正確是 P72R（UniProt VAR_005856，dbSNP rs1042522）
+TTN      R100W          # titin：AlphaFold DB 沒有模型（2026-11-19 查詢為 404），示範錯誤處理

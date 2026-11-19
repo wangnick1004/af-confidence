@@ -15,6 +15,9 @@
 - 更新紀錄與貢獻指南改為中文。
 - 準確度驗證報告（`benchmark/results.md`）改為中文，並加上名詞說明；修正 D/E 段落的說法：單一突變
   原理上只能保證不出現 strong，medium 偶爾會因巧合出現。報告寫檔時明確使用 UTF-8。
+- 範例清單（`examples/`）改用中文註解，並為每個突變註明出處（UniProt 變異編號或論文）與標準編號；
+  說明 `mixed_proteins.txt` 中的 R72P 是故意寫反的示範。查證了 UniProt 未標註的兩個突變名稱：
+  Arctic（E693G，Nilsberth et al. 2001）與 Icelandic（A673T，Jonsson et al. 2012）。
 
 ### 修正
 - 離線執行生物素酶（P43251）範例時，異構體 4 模型的建議現在也會顯示 pLDDT：原本 `data/cache` 裡
