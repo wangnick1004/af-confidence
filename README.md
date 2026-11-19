@@ -22,16 +22,17 @@ happily show you the wrong residue without any warning:
 
 ## Install and run
 
-Requires Python 3.9+; no third-party packages.
+Requires Python 3.9+; no third-party packages. On macOS and most Linux systems the command is
+`python3` (not `python`); on Windows it is usually `py`.
 
 ```bash
 git clone https://github.com/wangnick1004/af-confidence
 cd af-confidence
-pip install .
+python3 -m pip install .
 af-confidence P68871 E6V
 ```
 
-Without installing: `python -m af_confidence P68871 E6V`.
+Without installing: `python3 -m af_confidence P68871 E6V`.
 
 Example output:
 
@@ -45,7 +46,7 @@ Options: `--format text|tsv|json`, `--cache DIR`, `--offline` (cached files only
 The demo proteins are cached in `data/cache`, so `--cache data/cache --offline` works with no network.
 Exit code: 0 if every variant matches, 1 if any does not, 2 on a data/network error.
 
-Run the tests: `pip install pytest && python -m pytest`.
+Run the tests: `python3 -m pip install pytest && python3 -m pytest`.
 
 ## Scope (v0.1)
 

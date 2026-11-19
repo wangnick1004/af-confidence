@@ -135,26 +135,26 @@ cd af-confidence
 ```
 
 ```bash
-python -m af_confidence P68871 E6V --cache data/cache --offline
+python3 -m af_confidence P68871 E6V --cache data/cache --offline
 ```
 
 應該看到 `annotated_offset` 和 `E7V`。再試一次不加 `--cache data/cache --offline`，確認能從網路抓資料：
 
 ```bash
-python -m af_confidence P01009 E342K
+python3 -m af_confidence P01009 E342K
 ```
 
 想跑測試的話：
 
 ```bash
-pip install pytest
+python3 -m pip install pytest
 ```
 
 ```bash
-python -m pytest
+python3 -m pytest
 ```
 
-應該看到 `34 passed`。任何錯誤訊息請**全文**貼給我。Windows 上如果 `python` 不能用，改成 `py`。
+應該看到 `34 passed`。任何錯誤訊息請**全文**貼給我。macOS 和 Linux 請用 `python3`，Windows 通常用 `py`。
 
 ### 2. 對照 UniProt 網頁（抽查證據）
 
