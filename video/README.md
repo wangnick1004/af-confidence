@@ -5,14 +5,38 @@
 ```bash
 cd ~/af-confidence/video
 npm install
-npm run studio    # 在瀏覽器開啟預覽，可拖時間軸、即時看修改
-npm run render    # 輸出 out/HbSOpening.mp4
+npm run studio    # 在瀏覽器開啟 Remotion Studio
+npm run render    # 輸出 out/HbSOpeningEditable.mp4
 ```
 
-## 改風格時看哪裡
+## 兩個試作
 
-- `src/theme.ts`：顏色、字型、動畫柔和度、非重點元素變暗的程度
-- `src/scenes/HbSOpening.tsx` 開頭的 `B`：每個段落開始的格數（30 格 = 1 秒），改這裡調整節奏
-- `src/components/primitives.tsx`：字幕、來源標籤的樣式
+| 名稱 | 說明 |
+|---|---|
+| `HbSOpeningEditable` | **可編輯版**：每個畫面元素一條軌道，在 Studio 裡直接改 |
+| `HbSOpening` | 第一版試樣，保留做比較；元素無法在 Studio 裡編輯 |
 
-右下角的「來源 F5、F6」對應 `docs/video_handoff.md` 第四節，方便校對；正式版可以關掉。
+## 在 Studio 裡編輯 `HbSOpeningEditable`
+
+以下操作都已實際測試過，修改會**直接存回** `src/scenes/HbSOpeningEditable.tsx`：
+
+| 想改什麼 | 怎麼做 |
+|---|---|
+| 元素出現的時間 | 在下方時間軸**拖動藍色片段**；元素裡的動畫會整個跟著移動 |
+| 元素的長度 | 拖動片段的左右邊緣 |
+| 文字內容 | 在左側軌道列表點選元素（例如「文字片段 2」），右側面板最下方的 **Text** 欄直接輸入 |
+| 顏色、字級、粗細 | 點選元素，右側面板的 **Text** 區 |
+| 位置、縮放、旋轉、透明度 | 點選元素，右側面板的 **Transform** 區（Offset = 位置） |
+| 動畫（關鍵影格） | Transform 區每個欄位前的 ◆ 可新增關鍵影格；◀ ▶ 跳到前後一個關鍵影格 |
+| 圖層上下順序 | 軌道列表中越下面的元素畫在越上層 |
+| 暫時隱藏某個元素 | 軌道列表左邊的眼睛圖示 |
+
+### 注意事項
+
+- **子元素要在播放頭位於該片段時間範圍內時才會展開**。例如「序列方塊與模型編號」從 5.5 秒開始，播放頭停在 0 秒時看不到裡面的「方塊 1：M」；把播放頭移到 6 秒以後就會出現。
+- 元素的**淡出**動畫是寫死在片段結尾前 12～14 格；如果把片段拉長，淡出不會自動跟著移到新的結尾，要在 Opacity 的關鍵影格上手動移動最後兩個點。
+- 一段文字裡有不同顏色時，拆成幾個「文字片段」，每段各自改文字與顏色。
+- 「變暗遮罩」是一塊和背景同色、半透明的方塊，蓋在序列上讓其他格子變暗；「聚焦」元素再畫在遮罩上面。想改變暗程度，調整遮罩的 Opacity。
+- 改壞了可以用 Studio 的復原（⌘Z），或在終端機執行 `git checkout src/scenes/HbSOpeningEditable.tsx` 回到上一次存的版本。
+
+右下角的「來源 F5、F6」對應 `docs/video_handoff.md` 第四節，方便校對；正式版可以在軌道列表把它隱藏或刪除。

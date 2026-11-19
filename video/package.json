@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "studio": "remotion studio",
-    "render": "remotion render src/index.ts HbSOpening out/HbSOpening.mp4"
+    "render": "remotion render src/index.ts HbSOpeningEditable out/HbSOpeningEditable.mp4"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "5.3.0",
