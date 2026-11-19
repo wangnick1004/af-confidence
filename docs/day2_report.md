@@ -186,3 +186,33 @@ P01009 E342K
 - 依 ProtVar 測試結果，決定影片中工具的定位說法
 - 補上異構體模型的 pLDDT 顯示
 - 開始準備示範腳本（工具的錄影片段要跑哪些指令）
+
+---
+
+## 六、校對結果（使用者回報）
+
+- ✅ 在使用者的 Mac 上（`python3`）離線和連網執行都成功，輸出與雲端環境一致。第一天第 4 項檢查正式通過。
+- ✅ ProtVar 測試（ProtVar UI 2.0／API 2.0／Data 2.1，輸入 `P68871 E6V`）：截圖存於 `docs/images/protvar_P68871_E6V.webp`。
+
+### ProtVar 的實際行為
+
+ProtVar 顯示兩則警告（原文）：
+
+> P68871 E6V User input reference amino acid (Glu) does not match the UniProt sequence (Pro) at position 6. ProtVar will use the reference amino acid (Pro).
+
+> P68871 E6V User input variant amino acid (Val) cannot be caused by an SNV from the reference amino acid (Pro), therefore the returned results are position but not variant specific.
+
+接著它**繼續分析第 6 個位置的 Pro**，列出 Pro6Ala、Pro6Thr 等九種結果。
+
+**解讀：**
+- ProtVar **會偵測**到參考胺基酸不符，這點要在影片中如實說明。
+- 但它**不會建議正確位置**，反而改用錯誤位置（Pro6）繼續分析。使用者如果沒注意到警告，拿到的是另一個胺基酸的資料。
+- 本工具的差異：說明**為什麼**對不上（UniProt 標註起始甲硫胺酸被移除），並指出**正確位置**（E7V）。
+
+### 對定位的影響
+
+影片中的說法：「ProtVar 等完整工具會發現編號不符，但不會告訴你正確的位置在哪裡；這個工具補上這一步。」
+不要說「現有工具都不會檢查」，那是錯的。
+
+- ⏳ SERPINA1 E342K 在 ProtVar 的結果：尚未回報（預期行為相同，但需確認）。
+- ⏳ UniProt 網頁抽查（VAR_002863）：尚未回報。
