@@ -145,10 +145,17 @@ def test_uniprot_sequence_update_is_detected(client):
     # AlphaFold DB also has the new canonical sequence, filed under isoform 4
     assert any("AF-P43251-4-F1" in w and "use it" in w for w in p.warnings)
     results = map_variants("P43251", ["F108V", "A151T", "P371S"], client)
-    for r, true_pos in zip(results, [128, 171, 391]):
+    # pLDDT as shown by AlphaFold DB (checked online 2026-11-19): on AF-P43251-F1 at the shifted
+    # position, and on AF-P43251-4-F1 at the position as written (needs its file in data/cache)
+    expected = [(128, 98.56, 98.56), (171, 98.88, 98.88), (391, 73.56, 74.25)]
+    for r, (true_pos, plddt_shift, plddt_iso4) in zip(results, expected):
         assert r.status == "mismatch"
         assert r.suggestions[0].kind == "annotated_offset"
         assert r.suggestions[0].strength == "strong" and r.suggestions[0].position == true_pos
+        assert r.suggestions[0].plddt == pytest.approx(plddt_shift)
+        (iso,) = [s for s in r.suggestions if s.kind == "isoform"]
+        assert iso.entry_id == "AF-P43251-4-F1" and iso.strength == "strong"
+        assert iso.plddt == pytest.approx(plddt_iso4)
 
 
 def test_app_single_fragment_offset_is_weak(client):
