@@ -5,9 +5,10 @@ All notable changes to this project. Versions follow [Semantic Versioning](https
 ## [Unreleased]
 
 ### Added
-- Step-by-step user guide in Chinese for users without a programming background
-  ([使用說明.md](使用說明.md)): installing Python, downloading without git, writing variant
-  lists, reading the output and evidence levels, exporting to Excel, troubleshooting.
+- Step-by-step user guide in Chinese for users without a programming background, at the top
+  of the README: installing Python, four ways to download (git, ZIP via curl or PowerShell,
+  pip from GitHub), writing variant lists, reading the output and evidence levels, exporting
+  to Excel, troubleshooting.
 
 ### Fixed
 - Offline runs of the biotinidase (P43251) example now show pLDDT for the isoform 4 model
