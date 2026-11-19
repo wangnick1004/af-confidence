@@ -22,3 +22,12 @@ def test_rejected(text):
 
 def test_str():
     assert str(Variant("p.Glu6Val", "E", 6, "V")) == "E6V"
+
+
+def test_unknown_three_letter_alt():
+    with pytest.raises(VariantParseError, match="unknown amino-acid code"):
+        parse_variant("p.Glu6Xyz")
+
+
+def test_selenocysteine():
+    assert parse_variant("p.Sec49Cys").ref == "U"

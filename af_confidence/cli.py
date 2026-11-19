@@ -167,6 +167,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--offline", action="store_true", help="use cached files only, no network")
     ap.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = ap.parse_args(argv)
+    # UniProt text can contain non-ASCII characters (e.g. Greek letters); never crash on a
+    # console that cannot show them (common on Windows)
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
 
     toks = [t for item in args.items for t in _tokens(item)]
     default_protein = toks[0] if toks else None       # the first word is always the protein

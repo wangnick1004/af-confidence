@@ -107,3 +107,54 @@ def test_cli_isoform_input(capsys):
     assert main(["P01009-2", "E264V", "--cache", CACHE, "--offline"]) == 1
     out = capsys.readouterr().out
     assert "AF-P01009-2-F1" in out and "E288V" in out
+
+
+# ---- output details ----
+
+def test_cli_prints_warnings(capsys):
+    main(["P43251", "F108V", "--cache", CACHE, "--offline"])
+    assert "  warning: the current UniProt sequence of P43251" in capsys.readouterr().out
+
+
+def test_cli_tsv_error_and_plain_rows(tmp_path, capsys):
+    f = tmp_path / "list.txt"
+    f.write_text("NOTAGENE123 A1V\nTP53 R175H\n", encoding="utf-8")
+    assert main(["-f", str(f), "--format", "tsv", "--cache", CACHE, "--offline"]) == 2
+    rows = [r.split("\t") for r in capsys.readouterr().out.rstrip("\n").splitlines()]
+    assert rows[1][0] == "NOTAGENE123" and rows[1][3] == "error"
+    assert rows[2][2] == "R175H" and rows[2][3] == "match" and len(rows[2]) == len(rows[0])
+
+
+def test_cli_without_arguments_errors():
+    import pytest
+    with pytest.raises(SystemExit):
+        main([])
+
+
+def test_module_entry_point():
+    import subprocess
+    import sys
+    out = subprocess.run([sys.executable, "-m", "af_confidence", "--version"],
+                         capture_output=True, text=True, check=True)
+    assert out.stdout.startswith("af-confidence ")
+
+
+def test_non_ascii_output_on_limited_console(tmp_path):
+    # a protein description with a Greek letter must not crash a cp1252 console
+    import json
+    import shutil
+    import subprocess
+    import sys
+    cache = tmp_path / "cache"
+    shutil.copytree(CACHE, cache)
+    f = cache / "uniprot_P68871.json"
+    data = json.loads(f.read_text(encoding="utf-8"))
+    for feat in data["features"]:
+        if feat["type"] == "Chain":
+            feat["description"] = "Hemoglobin subunit β"
+    f.write_text(json.dumps(data), encoding="utf-8")
+    env = {**__import__("os").environ, "PYTHONIOENCODING": "cp1252"}
+    out = subprocess.run([sys.executable, "-m", "af_confidence", "P68871", "E6V", "--cache",
+                          str(cache), "--offline"], capture_output=True, env=env)
+    assert out.returncode == 1, out.stderr
+    assert b"Hemoglobin subunit ?" in out.stdout

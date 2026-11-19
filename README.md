@@ -1,12 +1,15 @@
 # af-confidence
 
+[![tests](https://github.com/wangnick1004/af-confidence/actions/workflows/tests.yml/badge.svg)](https://github.com/wangnick1004/af-confidence/actions/workflows/tests.yml)
+
 把文獻中的突變位置，正確對應到 AFDB 模型上
 
 Map protein-level variants written in the literature (e.g. `E6V`) onto the correct residue of the
 AlphaFold DB model, and explain numbering mismatches with evidence before anyone interprets a
 structure.
 
-> Status: v0.1 complete on the command line; 86 offline tests pass on Python 3.9 and 3.13.
+> Status: v0.1.0 released ([changelog](CHANGELOG.md)); 104 offline tests, run on Linux, macOS and
+> Windows with Python 3.9–3.13, plus a weekly check against the live APIs.
 > Accuracy measured on 735 real UniProt variants: see [Benchmark](#benchmark).
 > Goals, method and development plan (in Chinese): see [專案目標、方法與實作規劃](#專案目標方法與實作規劃).
 
@@ -81,12 +84,13 @@ with an explicit strength of evidence.
 | 第 4 天 | 基礎補強 | 基因名稱、其他物種、異構體輸入、多蛋白質清單、網路重試、快取損壞處理、資料缺失警告 |
 | 第 5 天 | 用真實資料驗證準確度 | 735 個 UniProt 天然變異的驗證（見 [Benchmark](#benchmark)）。發現 BTD（P43251）的 AFDB 模型落後 UniProt 序列更新，並修正標註位置換算的 bug；依數據把單一突變的標註位移從 strong 降為 medium，多突變改用二項檢定加 Bonferroni 校正 |
 | 最終檢查 | 從全新 clone 驗證整個 repo | 修正 AFDB 查無模型時未快取（離線結果不一致）、驗證抽樣在不同執行間不穩定兩個問題 |
+| 開源配備 | 自動測試、版本發布、測試補強 | GitHub Actions（3 種作業系統 × 5 個 Python 版本，加每週的線上 API 檢查）、CHANGELOG、貢獻指南、v0.1.0 版本標籤；補測試讓覆蓋率從 95% 提高到 99%；修正非 ASCII 字元在 Windows 終端機可能造成當機的問題 |
 
 `docs/` 中的每日報告保留當天的狀態與查證紀錄，有些說法後來已修正；**以本 README 為準**。
 
 ### 驗證方式
 
-- **自動化測試**：86 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），在 Python 3.9 與 3.13 通過；網路行為（重試、404、快取損壞）用模擬回應測試。
+- **自動化測試**：104 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，API 格式改變時會及早發現。
 - **真實資料驗證**：`benchmark/`，固定亂數種子、可重現。
 - **人工核對**：示範案例的 pLDDT 與序列，對照 AFDB 與 UniProt 網站；ProtVar 行為以實際操作截圖記錄。
 
@@ -95,7 +99,6 @@ with an explicit strength of evidence.
 限制見 [What it does NOT do](#what-it-does-not-do)。未來可能的方向（尚未排程）：
 
 - 網頁介面（靜態頁面，放在 GitHub Pages），讓不用終端機的人也能貼上清單使用
-- GitHub Actions 自動測試、版本標籤與發布
 - 給非程式背景使用者的中文使用說明
 - 透過 Ensembl VEP 支援 DNA 層級寫法；模式生物與人類同源蛋白質的編號對應
 
@@ -174,7 +177,8 @@ corrupt cache file is fetched again.
 Exit code: 0 if every variant matches unambiguously, 1 otherwise, 2 if a protein could not be
 loaded or a network error occurred.
 
-Run the tests: `python3 -m pip install pytest && python3 -m pytest`.
+Run the tests: `python3 -m pip install pytest && python3 -m pytest`. Contributions: see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What it checks
 
@@ -258,6 +262,7 @@ data/cache/     AlphaFold DB and UniProt responses for the demo proteins
 benchmark/      Accuracy benchmark on real UniProt variants (script, sampled data, results)
 scripts/        Day-1 feasibility checks
 docs/           Daily reports (dated; this README is authoritative), demo commands, screenshots
+.github/        Continuous integration (tests on Linux/macOS/Windows, weekly live API check)
 ```
 
 ## Data and licence

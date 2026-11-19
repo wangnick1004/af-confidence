@@ -166,3 +166,92 @@ def test_no_model_is_cached(tmp_path, monkeypatch):
     with pytest.raises(SourceError, match="no AlphaFold DB model"):   # offline: same answer
         Client(tmp_path, offline=True).models("Q8WZ42")
     assert len(calls) == 1
+
+
+# ---- less common branches ----
+
+def fake_entry(acc, seq, entry=None, entity="protein"):
+    entry = entry or f"AF-{acc}-F1"
+    return {"modelEntityId": entry, "uniprotAccession": acc, "latestVersion": 6, "sequence": seq,
+            "uniprotSequence": seq, "sequenceStart": 1, "entityType": entity,
+            "plddtDocUrl": f"https://alphafold.ebi.ac.uk/files/{entry}-confidence_v6.json"}
+
+
+def write(cache, name, data):
+    cache.mkdir(parents=True, exist_ok=True)
+    (cache / name).write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_default_cache_dir(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    assert sources.default_cache_dir() == tmp_path / "af-confidence"
+    monkeypatch.delenv("XDG_CACHE_HOME")
+    assert sources.default_cache_dir().name == "af-confidence"
+
+
+def test_unaligned_uniprot_sequence_drops_annotations(tmp_path):
+    # the current UniProt sequence is not a stretch of the model sequence (or vice versa)
+    write(tmp_path, "api_P11111.json", [fake_entry("P11111", "MKTAYIAKQRQISFVKSHFSRQ")])
+    write(tmp_path, "uniprot_P11111.json", {
+        "features": [{"type": "Signal", "location": {"start": {"value": 1}, "end": {"value": 5}}}],
+        "sequence": {"value": "MKTAYIAKQRQWSFVKSHFSRQ"}})                 # one substitution
+    p = Client(tmp_path, offline=True).protein("P11111")
+    assert p.processing == [] and p.uniprot_shift == 0
+    assert any("cannot be aligned" in w for w in p.warnings)
+
+
+def test_isoform_missing_from_base_list_is_fetched(tmp_path):
+    write(tmp_path, "api_P11111.json", [fake_entry("P11111", "MKTAYIAK")])
+    write(tmp_path, "api_P11111-2.json", [fake_entry("P11111-2", "MKTAYIAKQQ")])
+    models = Client(tmp_path, offline=True).models("P11111-2")
+    assert [m.accession for m in models] == ["P11111-2", "P11111"]
+
+
+def test_non_protein_entries_are_skipped(tmp_path):
+    write(tmp_path, "api_P11111.json", [fake_entry("P11111", "MKTAYIAK"),
+                                        fake_entry("P11111", "ACGU", "AF-X-RNA", entity="rna")])
+    assert [m.entry_id for m in Client(tmp_path, offline=True).models("P11111")] == ["AF-P11111-F1"]
+
+
+def test_uniprot_entry_not_found_and_bad_features(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(sources.urllib.request, "urlopen", fake_urlopen([http_error(404)], calls))
+    assert Client(tmp_path, retry_wait=0).processing_features("P11111") == []
+    write(tmp_path, "uniprot_P22222.json", {"features": [
+        {"type": "Signal", "location": {"start": {"value": None}, "end": {"value": 5}}},
+        {"type": "Chain", "location": {"start": {"value": 6}, "end": {"value": 50}}}]})
+    assert Client(tmp_path, offline=True).processing_features("P22222") == [("Chain", 6, 50, "")]
+
+
+@pytest.mark.parametrize("query", ["bad name!", "x" * 40, ""])
+def test_rejects_invalid_protein_names(client, query):
+    with pytest.raises(SourceError, match="neither a UniProt accession nor a gene name"):
+        client.resolve(query)
+
+
+def test_other_http_errors_are_not_retried(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(sources.urllib.request, "urlopen", fake_urlopen([http_error(403)], calls))
+    with pytest.raises(SourceError, match="HTTP 403"):
+        Client(tmp_path, retry_wait=0)._get_json("https://alphafold.ebi.ac.uk/x", "x.json")
+    assert len(calls) == 1
+
+
+def test_timeouts_and_bad_json_are_retried(tmp_path, monkeypatch):
+    calls = []
+
+    class BadJson(FakeResponse):
+        pass
+
+    outcomes = [TimeoutError("timed out"), ConnectionResetError(), BadJson(b"<html>")]
+
+    def _open(req, timeout=None):
+        calls.append(req)
+        out = outcomes.pop(0)
+        if isinstance(out, Exception):
+            raise out
+        return out
+    monkeypatch.setattr(sources.urllib.request, "urlopen", _open)
+    with pytest.raises(SourceError, match="invalid JSON"):
+        Client(tmp_path, retry_wait=0)._get_json("https://alphafold.ebi.ac.uk/x", "x.json")
+    assert len(calls) == 3

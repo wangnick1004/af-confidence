@@ -195,3 +195,13 @@ def test_chance_of_support():
     assert chance_of_support(seq, ["A"], 1) == pytest.approx(0.05)
     assert chance_of_support(seq, ["A", "C"], 2) == pytest.approx(0.0025)
     assert chance_of_support(seq, ["A", "C"], 0) == pytest.approx(1.0)
+
+
+def test_consistent_offset_rejected_when_plausible_by_chance():
+    from af_confidence.mapper import consistent_offset
+    from af_confidence.sources import Model
+    # 20 distinct residues: shift -1 is the only one that fits both variants, but with 40
+    # shifts tried and p = 1/20 per residue, 40 * (1/20)**2 = 0.1 expected coincidences
+    m = Model("AF-T-F1", "T", 6, "ACDEFGHIKLMNPQRSTVWY", 1, "")
+    variants = [parse_variant("A2V"), parse_variant("C3V")]
+    assert consistent_offset(m, variants) is None
