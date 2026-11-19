@@ -23,9 +23,10 @@
 5. [怎麼輸入](#5-怎麼輸入)
 6. [怎麼讀結果](#6-怎麼讀結果)
 7. [把結果存成 Excel 可以開的檔案](#7-把結果存成-excel-可以開的檔案)
-8. [常見問題](#8-常見問題)
-9. [這個工具不做的事](#9-這個工具不做的事)
-10. [引用與授權](#10-引用與授權)
+8. [在 AlphaFold DB 網頁上標出正確位置](#8-在-alphafold-db-網頁上標出正確位置)
+9. [常見問題](#9-常見問題)
+10. [這個工具不做的事](#10-這個工具不做的事)
+11. [引用與授權](#11-引用與授權)
 
 ---
 
@@ -290,7 +291,7 @@ python3 -m af_confidence APP -f examples/app_abeta_numbering.txt
 |---|---|
 | `-f 檔案`、`--file 檔案` | 讀取清單檔；可以重複使用，一次讀多個檔案 |
 | `--organism 物種代碼` | 查基因名稱時用的物種（NCBI taxonomy ID），預設 9606（人類） |
-| `--format text`／`tsv`／`json` | 輸出格式：一般文字（預設）、TSV（可用 Excel 開啟）、JSON（給程式讀取） |
+| `--format text`／`tsv`／`json`／`afdb` | 輸出格式：一般文字（預設）、TSV（可用 Excel 開啟）、JSON（給程式讀取）、AFDB 自訂標註（見[第 8 節](#8-在-alphafold-db-網頁上標出正確位置)） |
 | `--cache 資料夾` | 下載資料的存放位置，預設 `~/.cache/af-confidence` |
 | `--offline` | 不連網，只用已下載的資料 |
 | `--version`、`-h` | 顯示版本、顯示說明 |
@@ -380,7 +381,57 @@ python3 -m af_confidence -f my_variants.txt --format tsv > 結果.tsv
 
 ---
 
-### 8. 常見問題
+### 8. 在 AlphaFold DB 網頁上標出正確位置
+
+AlphaFold DB 從 2025 年 11 月起，可以在模型頁上加入「自訂標註」，在官方的結構檢視器中標出你指定的位置。工具可以直接產生要填進去的內容，**而且位置已經換算成該模型的編號**：
+
+```bash
+python3 -m af_confidence -f my_variants.txt --format afdb
+```
+
+輸出範例（節錄）：
+
+```
+== HBB -> P68871  https://alphafold.ebi.ac.uk/entry/AF-P68871-F1
+   Track name:          Fixed medium
+   Residues or ranges:  7
+   from:
+     E6V -> 7 (annotated_offset, medium)
+
+== SERPINA1 -> P01009  https://alphafold.ebi.ac.uk/entry/AF-P01009-F1
+   Track name:          Fixed strong
+   Residues or ranges:  288, 366
+   from:
+     E342K -> 366 (annotated_offset, strong)
+     E264V -> 288 (annotated_offset, strong)
+```
+
+**操作步驟：**
+
+1. 打開輸出中 `==` 那一行的網址（每個模型一個網址）
+2. 在模型頁的標註區（Annotations）打開標題為「**Add your annotation track**」的對話框
+3. 「Track name」填入工具輸出的 Track name；「Residues or ranges」貼上後面的數字
+4. 按「**Add track**」。同一個模型有多條軌跡時，每條重複一次
+
+**四種軌跡：**
+
+| 軌跡名稱 | 內容 |
+|---|---|
+| `OK as written` | 照原寫法就對得上的位置 |
+| `Fixed strong` | 對不上，依 strong 證據校正後的位置 |
+| `Fixed medium` | 對不上，依 medium 證據校正後的位置（大約 10 次對 9 次，重要的結果請回文獻確認） |
+| `Ambiguous` | 照原寫法對得上、但可能是巧合的突變：原寫法的位置和建議的位置都會標出來 |
+
+**注意：**
+
+- 只有 strong 或 medium 的位置會放入；只有 weak 證據或無法解析的突變，會列在 `not placed:` 並說明原因。
+- 一個突變可能對應到**兩個模型**（例如 UniProt 更新過序列的蛋白質），工具會分別列出兩個網址，並在 `warning:` 說明該用哪一個。
+- AlphaFold DB **不能上傳檔案**，只能在對話框中輸入；標註只保存在瀏覽器分頁中，關閉分頁就會消失。要保存的話，可以用模型頁下載選單中的「Custom tracks (all)」匯出 CSV。
+- 輸入格式是依 AlphaFold DB 網頁的程式碼確認的（每個位置字串都通過它自己的格式檢查）；開啟對話框的按鈕位置，請以實際網頁為準。
+
+---
+
+### 9. 常見問題
 
 **Q：出現 `command not found: python3` 或「找不到指令」**
 A：電腦沒有安裝 Python，或 Windows 使用者沒有改用 `py`。見[第 2 節](#2-準備確認電腦有-python)。
@@ -417,7 +468,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ---
 
-### 9. 這個工具不做的事
+### 10. 這個工具不做的事
 
 - **不判斷突變是否致病。** AFDB 的模型是正常（野生型）蛋白質，看不出突變後的結構變化。
 - **不重新評估結構的可信度。** pLDDT 照 AFDB 原值顯示。
@@ -429,7 +480,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ---
 
-### 10. 引用與授權
+### 11. 引用與授權
 
 - 結構預測資料來自 AlphaFold Protein Structure Database（EMBL-EBI 與 Google DeepMind），採用 CC-BY-4.0 授權。使用結果時，請引用 AlphaFold 與 AlphaFold DB 的論文。
 - 加工標註與序列資料來自 UniProt。
@@ -479,7 +530,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
    - 無標註的共同位移：搜尋所有可能位移，只在恰好一個位移成立、且期望巧合次數 2L·∏*pᵢ* < 0.05 時回報（L 為序列長度），為 **strong**。
    - 異構體：同一個異構體說明了整批（≥ 2 個）對不上的突變時為 **strong**，否則為 **weak**；寫反（`swapped`）為 **medium**；前後 3 格內（`nearby`）為 **weak**，只在沒有更強的解釋時顯示。
    - 有 strong 或 medium 的解釋時，隱藏 weak 的雜訊。
-7. **輸出**：文字、TSV（可用 Excel 開啟）或 JSON；每個建議附上對應的 AFDB 模型與該位置的 pLDDT（照 AFDB 原值）。
+7. **輸出**：文字、TSV（可用 Excel 開啟）、JSON，或 AFDB 自訂標註（可直接貼進 AFDB 模型頁）；每個建議附上對應的 AFDB 模型與該位置的 pLDDT（照 AFDB 原值）。
 
 ### 實作規劃與歷程
 
@@ -493,18 +544,33 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 | 最終檢查 | 從全新 clone 驗證整個 repo | 修正 AFDB 查無模型時未快取（離線結果不一致）、驗證抽樣在不同執行間不穩定兩個問題 |
 | 開源配備 | 自動測試、版本發布、測試補強 | GitHub Actions（3 種作業系統 × 5 個 Python 版本，加每週的線上 API 檢查）、CHANGELOG、貢獻指南、v0.1.0 版本標籤；補測試讓覆蓋率從 95% 提高到 99%；修正非 ASCII 字元在 Windows 終端機可能造成當機的問題 |
 
+| 工作流程整合 | 把工具接進研究者使用 AlphaFold 的日常流程 | 調查研究者的日常工作流程（見下一節）；完成第一項整合：輸出 AFDB 自訂標註（`--format afdb`），讓校正後的位置直接顯示在 AFDB 官方的結構檢視器上 |
+
 `docs/` 中的每日報告保留當天的狀態與查證紀錄，有些說法後來已修正；**以本 README 為準**。
+
+### 融入研究者的日常工作流程
+
+研究者使用 AlphaFold 的日常流程大致是：在 AFDB 網站查詢瀏覽 → 下載模型到 ChimeraX 或 PyMOL 視覺化 → 用 Python 批次處理 → 結合 VEP、ProtVar 判讀突變；近年也開始透過 AI 助理（MCP）查詢。編號錯位發生在「**把文獻中的位置帶進 AFDB 網站或視覺化軟體**」的那一步，而這些工具都不會檢查編號。完整的調查與來源見 [`docs/workflow_research.md`](docs/workflow_research.md)。
+
+| 整合 | 接入的步驟 | 狀態 |
+|---|---|---|
+| AFDB 自訂標註（`--format afdb`） | 在 AFDB 網站查詢瀏覽 | ✅ 完成（見[第 8 節](#8-在-alphafold-db-網頁上標出正確位置)） |
+| ChimeraX 腳本 | 下載模型、視覺化 | 規劃中 |
+| Python 函式庫介面與 Colab 範例 | 批次處理 | 規劃中 |
+| PyMOL 腳本 | 下載模型、視覺化 | 規劃中 |
+| MCP 伺服器 | AI 助理 | 規劃中 |
 
 ### 驗證方式
 
-- **自動化測試**：104 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- **自動化測試**：126 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 - **真實資料驗證**：`benchmark/`，固定亂數種子、可重現。
 - **人工核對**：示範案例的 pLDDT 與序列，對照 AFDB 與 UniProt 網站；ProtVar 行為以實際操作截圖記錄。
 
 ### 已知限制與未來規劃
 
-限制見 [這個工具不做的事](#9-這個工具不做的事)。未來可能的方向（尚未排程）：
+限制見 [這個工具不做的事](#10-這個工具不做的事)。未來可能的方向（尚未排程）：
 
+- 上一節列出的其他工作流程整合
 - 網頁介面（靜態頁面，放在 GitHub Pages），讓不用終端機的人也能貼上清單使用
 - 透過 Ensembl VEP 支援 DNA 層級寫法；模式生物與人類同源蛋白質的編號對應
 
