@@ -17,7 +17,7 @@ from . import __version__
 USER_AGENT = f"af-confidence/{__version__} (+https://github.com/wangnick1004/af-confidence)"
 AFDB_API = "https://alphafold.ebi.ac.uk/api/prediction/{acc}"
 UNIPROT_API = ("https://rest.uniprot.org/uniprotkb/{acc}.json"
-               "?fields=ft_init_met,ft_signal,ft_chain,ft_propep,ft_transit,sequence")
+               "?fields=ft_init_met,ft_signal,ft_chain,ft_peptide,ft_propep,ft_transit,sequence")
 
 
 class SourceError(RuntimeError):

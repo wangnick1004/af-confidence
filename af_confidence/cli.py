@@ -10,7 +10,8 @@ from . import __version__
 from .mapper import Result, map_variants
 from .sources import Client, SourceError
 
-SYMBOL = {"match": "OK ", "mismatch": "XX ", "out_of_range": "XX ", "invalid": "?? "}
+SYMBOL = {"match": "OK ", "ambiguous_match": "!? ", "mismatch": "XX ", "out_of_range": "XX ",
+          "invalid": "?? "}
 
 
 def _fmt_plddt(x: float | None) -> str:
@@ -29,22 +30,36 @@ def render_text(accession: str, results: list[Result]) -> str:
             lines.append(f"{SYMBOL[r.status]}{r.input}: {r.message}")
         for s in r.suggestions:
             tail = f" [pLDDT {_fmt_plddt(s.plddt)}]" if s.plddt is not None else ""
-            lines.append(f"     -> [{s.kind}] {s.note}{tail}")
+            lines.append(f"     -> [{s.strength}] {s.kind}: {s.note}{tail}")
     lines.append("")
+    lines.append("Evidence: strong = annotated or very unlikely by chance; medium = specific but "
+                 "single; weak = could easily be chance.")
     lines.append("pLDDT values are shown as provided by AlphaFold DB, not reinterpreted. "
                  "This tool does not predict variant effects.")
     return "\n".join(lines)
 
 
 def render_tsv(results: list[Result]) -> str:
-    rows = ["input\tstatus\tentry_id\tmodel_residue\tplddt\tsuggestion_kind\tsuggested_position\tnote"]
+    rows = ["input\tstatus\tentry_id\tmodel_residue\tplddt\tsuggestion_kind\tstrength\t"
+            "suggested_position\tsuggestion_entry\tsuggestion_plddt\tnote"]
     for r in results:
         base = [r.input, r.status, r.entry_id, r.model_residue, _fmt_plddt(r.plddt)]
         if not r.suggestions:
-            rows.append("\t".join(base + ["", "", r.message]))
+            rows.append("\t".join(base + ["", "", "", "", "", r.message]))
         for s in r.suggestions:
-            rows.append("\t".join(base + [s.kind, str(s.position), s.note]))
+            rows.append("\t".join(base + [s.kind, s.strength, str(s.position), s.entry_id,
+                                           _fmt_plddt(s.plddt), s.note]))
     return "\n".join(rows)
+
+
+def read_variant_file(path: str) -> list[str]:
+    """One or more variants per line; commas allowed; text after '#' is a comment."""
+    out = []
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.split("#", 1)[0]
+            out.extend(v for v in line.replace(",", " ").split() if v)
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -53,7 +68,9 @@ def main(argv: list[str] | None = None) -> int:
         description="Check protein variants (e.g. E6V, p.Glu6Val) against the AlphaFold DB model "
                     "sequence and explain numbering mismatches.")
     ap.add_argument("accession", help="UniProt accession, e.g. P68871")
-    ap.add_argument("variants", nargs="+", help="variants, e.g. E6V p.Glu342Lys (commas allowed)")
+    ap.add_argument("variants", nargs="*", help="variants, e.g. E6V p.Glu342Lys (commas allowed)")
+    ap.add_argument("-f", "--file", help="read variants from a text file (one or more per line, "
+                                         "'#' starts a comment)")
     ap.add_argument("--format", choices=["text", "tsv", "json"], default="text")
     ap.add_argument("--cache", help="cache directory (default: ~/.cache/af-confidence)")
     ap.add_argument("--offline", action="store_true", help="use cached files only, no network")
@@ -61,6 +78,14 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     variants = [v for arg in args.variants for v in arg.replace(",", " ").split() if v]
+    if args.file:
+        try:
+            variants += read_variant_file(args.file)
+        except OSError as exc:
+            print(f"error: cannot read {args.file}: {exc.strerror}", file=sys.stderr)
+            return 2
+    if not variants:
+        ap.error("give at least one variant, or --file")
     try:
         results = map_variants(args.accession, variants, Client(args.cache, offline=args.offline))
     except SourceError as exc:

@@ -1,0 +1,3 @@
+# SERPINA1 (UniProt P01009) deficiency alleles in the traditional mature-protein numbering
+E342K   # Z allele  (p.Glu366Lys)
+E264V   # S allele  (p.Glu288Val)

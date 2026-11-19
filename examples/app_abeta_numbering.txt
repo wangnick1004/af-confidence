@@ -1,0 +1,9 @@
+# APP (UniProt P05067) variants as usually written in the Alzheimer's literature, i.e. in
+# amyloid-beta (Abeta) numbering, where Abeta residue 1 = APP770 residue 672.
+# UniProt natural variants at 692/693/694 name Flemish, Dutch and Iowa; the names Icelandic
+# and Arctic come from the literature (see docs/day3_report.md for sources).
+A2T     # Icelandic (protective) = A673T in APP770 numbering
+A21G    # Flemish  = A692G
+E22G    # Arctic   = E693G
+E22Q    # Dutch    = E693Q
+D23N    # Iowa     = D694N

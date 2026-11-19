@@ -19,3 +19,7 @@ af-confidence = "af_confidence.cli:main"
 
 [tool.setuptools]
 packages = ["af_confidence"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

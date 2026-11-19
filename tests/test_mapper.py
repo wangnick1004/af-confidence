@@ -97,3 +97,55 @@ def test_invalid_and_out_of_range(client):
 def test_offline_missing_protein(client):
     with pytest.raises(SourceError):
         map_variants("Q99999", ["A1V"], client)
+
+
+# ---- day 3: evidence strength, fragments, ambiguous matches, isoform pLDDT ----
+
+def strengths(result):
+    return [(s.kind, s.strength) for s in result.suggestions]
+
+
+def test_primary_offsets_are_strong(client):
+    (r,) = map_variants("P68871", ["E6V"], client)
+    assert strengths(r) == [("annotated_offset", "strong")]
+
+
+def test_app_abeta_batch(client):
+    # Abeta numbering: Abeta residue 1 = APP770 residue 672 (UniProt chains start at 672)
+    results = map_variants("P05067", ["A2T", "A21G", "E22G", "E22Q"], client)
+    for r, true_pos in zip(results, [673, 692, 693, 693]):
+        assert r.status == "mismatch"
+        assert strengths(r) == [("annotated_offset", "strong")]
+        assert r.suggestions[0].position == true_pos
+        assert "Amyloid-beta protein 42" in r.suggestions[0].note
+
+
+def test_app_single_fragment_offset_is_weak(client):
+    (r,) = map_variants("P05067", ["A2T"], client)
+    assert r.suggestions and all(s.strength == "weak" for s in r.suggestions)
+    assert 673 in [s.position for s in r.suggestions]
+
+
+def test_coincidental_match_flagged_in_batch(client):
+    # Iowa D23N (Abeta numbering) = D694N; residue 23 of APP770 also happens to be D
+    results = map_variants("P05067", ["A2T", "E22G", "D23N"], client)
+    d23n = results[2]
+    assert d23n.status == "ambiguous_match"
+    assert [s.position for s in d23n.suggestions] == [694]
+
+
+def test_coincidental_match_alone_is_not_detectable(client):
+    (r,) = map_variants("P05067", ["D23N"], client)
+    assert r.status == "match"
+
+
+def test_isoform_plddt_shown_when_cached(client):
+    (r,) = map_variants("P04637", ["M332L"], client)
+    (s,) = [s for s in r.suggestions if s.kind == "isoform"]
+    assert s.strength == "weak" and s.plddt == pytest.approx(79.88)
+
+
+def test_weak_hidden_when_strong_exists(client):
+    # E6V has a strong explanation, so no 'nearby' noise is shown
+    (r,) = map_variants("P68871", ["E6V"], client)
+    assert "nearby" not in kinds(r)
