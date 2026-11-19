@@ -1,41 +1,44 @@
-# Changelog
+# 更新紀錄
 
-All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org/).
+記錄本專案所有重要的變更。版本號依照[語意化版本](https://semver.org/lang/zh-TW/)。
 
-## [Unreleased]
+## [尚未發布]
 
-### Added
-- Step-by-step user guide in Chinese for users without a programming background, at the top
-  of the README: installing Python, four ways to download (git, ZIP via curl or PowerShell,
-  pip from GitHub), writing variant lists, reading the output and evidence levels, exporting
-  to Excel, troubleshooting.
+### 新增
+- 給非程式背景使用者的中文使用說明，放在 README 開頭：安裝 Python、四種下載方式（git、用 curl
+  或 PowerShell 下載 ZIP、用 pip 從 GitHub 安裝）、建立突變清單、看懂輸出與證據強度、存成 Excel、
+  常見問題。
 
-### Fixed
-- Offline runs of the biotinidase (P43251) example now show pLDDT for the isoform 4 model
-  suggestions: its confidence file was missing from `data/cache`
-  ([#1](https://github.com/wangnick1004/af-confidence/pull/1)).
+### 變更
+- README 改為全中文：中文使用說明併入 README，刪除獨立的 `使用說明.md`；移除與中文重複的英文段落，
+  只有英文版才有的資訊先移入中文段落；準確度驗證與檔案結構也翻成中文。
+- 更新紀錄與貢獻指南改為中文。
+
+### 修正
+- 離線執行生物素酶（P43251）範例時，異構體 4 模型的建議現在也會顯示 pLDDT：原本 `data/cache` 裡
+  缺少該模型的信心分數檔（[#1](https://github.com/wangnick1004/af-confidence/pull/1)）。
 
 ## [0.1.0] - 2026-11-19
 
-First release: a command-line tool that maps protein-level variants written in the literature
-onto AlphaFold DB models and explains numbering mismatches with graded evidence.
+第一個正式版本：一個命令列工具，把文獻中蛋白質層級的突變寫法對應到 AlphaFold DB 模型上，並以
+分級的證據說明編號不符的原因。
 
-### Added
-- Variant notation: `E6V`, `p.E6V`, `Glu6Val`, `p.Glu6Val`, `p.(Glu6Val)`, nonsense (`*`, `Ter`).
-- Protein input as UniProt accession, isoform accession (`P04637-2`) or gene name
-  (`--organism` for non-human); lists from files with one protein per line (`-f`).
-- Explanations for mismatches: annotated offset (UniProt processing features or a UniProt
-  sequence update), consistent offset, isoform, swapped ref/alt, nearby residue; detection of
-  coincidental matches in a batch (`ambiguous_match`).
-- Evidence levels strong / medium / weak based on the probability of a coincidence (binomial
-  tail with Bonferroni correction; expected chance hits for unannotated shifts).
-- Detection of AlphaFold DB models built on an older UniProt sequence, with conversion of
-  UniProt annotations to model positions and a pointer to a model that has the current sequence.
-- Output as text, TSV or JSON; exit codes 0 / 1 / 2.
-- Local cache, `--offline` mode, retries with back-off, atomic cache writes, cached "no model"
-  answers; no third-party dependencies; Python 3.9+.
-- Accuracy benchmark on 735 UniProt natural variants (`benchmark/`).
-- 104 offline tests; continuous integration on Linux, macOS and Windows with Python 3.9–3.13,
-  and a weekly check against the live AlphaFold DB and UniProt APIs.
+### 新增
+- 突變寫法：`E6V`、`p.E6V`、`Glu6Val`、`p.Glu6Val`、`p.(Glu6Val)`，以及無義突變（`*`、`Ter`）。
+- 蛋白質可以輸入 UniProt 編號、異構體編號（`P04637-2`）或基因名稱（非人類用 `--organism`）；
+  可以從清單檔讀入，每行一個蛋白質（`-f`）。
+- 編號不符時的解釋：標註位移（UniProt 加工標註或 UniProt 序列更新）、共同位移、異構體、參考與變異
+  胺基酸寫反、鄰近位置；整批輸入時偵測碰巧對上的突變（`ambiguous_match`）。
+- 依巧合機率分級的證據強度 strong／medium／weak（二項分布尾端機率加 Bonferroni 校正；無標註位移
+  則用期望的巧合次數）。
+- 偵測以舊版 UniProt 序列建立的 AlphaFold DB 模型：把 UniProt 標註換算到模型位置，並指出序列與
+  現行 UniProt 相同的模型。
+- 輸出格式：文字、TSV、JSON；結束代碼 0／1／2。
+- 本機快取、`--offline` 離線模式、逐次加長等待的網路重試、不會寫一半的快取檔、快取「查無模型」的
+  結果；不需要任何第三方套件；支援 Python 3.9 以上。
+- 用 735 個 UniProt 天然變異做的準確度驗證（`benchmark/`）。
+- 104 個離線測試；在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動測試，並每週檢查一次真實的
+  AlphaFold DB 與 UniProt API。
 
+[尚未發布]: https://github.com/wangnick1004/af-confidence/compare/v0.1.0...main
 [0.1.0]: https://github.com/wangnick1004/af-confidence/releases/tag/v0.1.0

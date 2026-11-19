@@ -1,9 +1,9 @@
-# Contributing
+# 貢獻指南
 
-Bug reports and suggestions are welcome as GitHub issues. Most useful: a variant list where the
-tool gives a wrong or misleading answer, with the source (paper or database) of the numbering.
+歡迎在 GitHub 的 Issues 回報問題或提出建議。最有幫助的是：一份工具給出錯誤或誤導答案的突變清單，
+並附上該編號的出處（論文或資料庫）。
 
-## Development
+## 開發環境
 
 ```bash
 git clone https://github.com/wangnick1004/af-confidence
@@ -12,17 +12,17 @@ python3 -m pip install -e . pytest
 python3 -m pytest
 ```
 
-- The tool must keep working with the Python standard library only (no runtime dependencies)
-  and on Python 3.9+.
-- Tests run offline against the real AlphaFold DB and UniProt responses in `data/cache`. To add
-  a protein for a test, run the tool once with `--cache data/cache` (online) and commit the new
-  files.
-- Every suggestion is an exact sequence comparison. Changes to how evidence is graded should be
-  checked with the benchmark before and after:
+## 開發原則
+
+- 工具必須只用 Python 標準函式庫就能執行（不加入任何執行時需要的第三方套件），並支援 Python 3.9
+  以上。
+- 測試全部離線執行，使用 `data/cache` 中真實的 AlphaFold DB 與 UniProt 資料。要為測試新增一個
+  蛋白質時，先連網執行一次工具並加上 `--cache data/cache`，再把新產生的檔案一起 commit。
+- 每個建議都必須是精確的序列比對。修改證據強度的判斷方式時，請在修改前後各跑一次準確度驗證，
+  比較結果：
 
   ```bash
   python3 benchmark/run_benchmark.py --cache /path/to/benchmark-cache
   ```
 
-- Keep the scope: the tool maps numbering; it does not reinterpret pLDDT or predict variant
-  effects.
+- 維持工具的範圍：只做編號對應，不重新判讀 pLDDT，也不預測突變的影響。
