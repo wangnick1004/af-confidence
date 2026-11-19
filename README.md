@@ -4,8 +4,8 @@
 
 把文獻中的突變位置，正確對應到 AFDB 模型上
 
-> 目前版本 v0.1.0（[更新紀錄](CHANGELOG.md)）。另見 [專案目標、方法與實作規劃](#專案目標方法與實作規劃)、
-> [準確度驗證](#準確度驗證)。
+> 目前版本 v0.1.0（[更新紀錄](CHANGELOG.md)）。另見 [研究情境：把工具放進日常工作](#研究情境把工具放進日常工作)、
+> [專案目標、方法與實作規劃](#專案目標方法與實作規劃)、[準確度驗證](#準確度驗證)。
 
 ## 中文使用說明
 
@@ -667,6 +667,170 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ---
 
+## 研究情境：把工具放進日常工作
+
+這一章用五個研究者實際會遇到的情境，示範工具在 AlphaFold 日常工作流程中的位置：**什麼時候用、怎麼用、用完之後接到哪一步**。每個情境的輸出都是工具的實際輸出（自動測試會確認本章的輸出與工具一致）。日常工作流程的調查見[融入研究者的日常工作流程](#融入研究者的日常工作流程)。
+
+| 情境 | 研究者在做什麼 | 工具接在哪一步 | 用到的整合 |
+|---|---|---|---|
+| [1](#情境-1讀論文時想在-alphafold-db-上看一個突變) | 讀論文，想在 AFDB 上看一個突變 | 打開 AFDB 網頁之前 | AFDB 自訂標註 |
+| [2](#情境-2整理多篇文獻的突變清單) | 寫回顧文章、建立突變資料表 | 把清單填進表格之前 | 清單檔、Excel、pandas |
+| [3](#情境-3做結構分析和作圖) | 準備投影片或論文用的結構圖 | 在 PyMOL 或 ChimeraX 標記位置之前 | PyMOL、ChimeraX 腳本 |
+| [4](#情境-4把資料庫的突變對照到-alphafold-結構) | 拿 UniProt、ClinVar 的突變對照結構 | 選擇要看哪個模型之前 | 序列版本警告 |
+| [5](#情境-5請-ai-助理協助整理文獻) | 請 AI 助理讀論文、整理突變 | AI 回答突變位置之前 | MCP 伺服器 |
+
+### 情境 1：讀論文時，想在 AlphaFold DB 上看一個突變
+
+**研究者在做什麼：** 讀到一篇鐮刀型貧血的論文，文中寫 HbS 是 **E6V**，想在 AlphaFold DB 上看這個位置在結構的哪裡。
+
+**會遇到的問題：** 在 AFDB 的 HBB 模型上找第 6 個位置，看到的是 P（脯胺酸），不是 E。網站不會提醒，很容易就把錯的位置當成突變位置。
+
+**怎麼用：** 打開 AFDB 之前，先檢查一次：
+
+```bash
+python3 -m af_confidence HBB E6V
+```
+
+```text
+HBB -> P68871  (AlphaFold DB model AF-P68871-F1)
+XX E6V: model has P at 6, not E
+     -> [medium] annotated_offset: +1: E7V matches; UniProt: initiator Met removed; mature chain 'Hemoglobin subunit beta' starts at 2 (explains 1/1 mismatched input) [pLDDT 96.56]
+```
+
+工具指出傳統編號不算第一個甲硫胺酸，模型上的正確位置是第 7 個。要直接在 AFDB 網頁上標出來，產生自訂標註：
+
+```bash
+python3 -m af_confidence HBB E6V --format afdb
+```
+
+```text
+== HBB -> P68871  https://alphafold.ebi.ac.uk/entry/AF-P68871-F1
+   Track name:          Fixed medium
+   Residues or ranges:  7
+```
+
+**接下來：** 打開輸出中的網址，在「Add your annotation track」對話框貼上 Track name 和位置（見[第 8 節](#8-在-alphafold-db-網頁上標出正確位置)），就能在 AFDB 官方的結構檢視器上看到第 7 個位置，以及它的 pLDDT（96.56，非常高）。因為只有一個突變，證據是 medium：最好再看一眼論文的方法段落，確認作者用的是傳統編號。
+
+### 情境 2：整理多篇文獻的突變清單
+
+**研究者在做什麼：** 寫阿茲海默症的回顧文章，從多篇論文整理 APP 的突變，打算做成一張表，並對照 AlphaFold 結構。
+
+**會遇到的問題：** 這個領域的論文常用 Aβ 自己的編號（Aβ 的第 1 個胺基酸 = APP 的第 672 個）。大部分突變放到 APP 模型上會對不上；更麻煩的是 **D23N**：APP 的第 23 個位置剛好也是 D，看起來「對得上」，其實是巧合，任何單一突變的檢查都發現不了。
+
+**怎麼用：** 把整份清單存成文字檔（範例：[`examples/app_abeta_numbering.txt`](examples/app_abeta_numbering.txt)，每個突變都註明了出處），一起檢查：
+
+```bash
+python3 -m af_confidence APP -f examples/app_abeta_numbering.txt
+```
+
+```text
+APP -> P05067  (AlphaFold DB model AF-P05067-F1)
+XX A2T: model has L at 2, not A
+     -> [strong] annotated_offset: +671: A673T matches; UniProt: 'C99', 'Amyloid-beta protein 42', 'Amyloid-beta protein 40' start at 672 (explains 4/4 mismatched inputs) [pLDDT 36.44]
+...
+!? D23N: matches as written, but D694N (+671) also matches, the shift that explains 4/4 mismatched inputs
+     -> [medium] ambiguous_match: +671: if the source uses the same numbering as the other inputs, the variant is D694N (UniProt: 'C99', 'Amyloid-beta protein 42', 'Amyloid-beta protein 40' start at 672) [pLDDT 39.81]
+```
+
+四個突變一致指向 +671，所以都是 strong；D23N 被標示 `!?`，因為整批的位移顯示它應該是 D694N。
+
+**接下來：** 把結果存成表格，直接放進回顧文章的資料表：
+
+```bash
+python3 -m af_confidence APP -f examples/app_abeta_numbering.txt --format tsv > abeta.tsv
+```
+
+在 Excel 開啟 `abeta.tsv`（見[第 7 節](#7-把結果存成-excel-可以開的檔案)），或在 Jupyter／Colab 中用 `afc.to_dataframe(afc.check_list("examples/app_abeta_numbering.txt", protein="APP"))` 整理（見[第 11 節](#11-在-python-或-jupytercolab-中使用)）。注意這些位置的 pLDDT 都低於 50：Aβ 區段在這個單體模型中沒有可靠的固定結構，表格中可以註明。
+
+### 情境 3：做結構分析和作圖
+
+**研究者在做什麼：** 準備實驗室會議的投影片，想畫出 α1-抗胰蛋白酶（SERPINA1）的 Z 型與 S 型突變在結構上的位置。
+
+**會遇到的問題：** 臨床文獻寫 Z 型是 E342K、S 型是 E264V，用的是成熟蛋白質的編號（不算前 24 個胺基酸的訊號胜肽）。在 PyMOL 裡直接選第 342 和 264 個位置，標記的會是 L（白胺酸），圖就畫錯了。
+
+**怎麼用：**
+
+```bash
+python3 -m af_confidence P01009 -f examples/serpina1_alleles.txt
+```
+
+```text
+P01009  (AlphaFold DB model AF-P01009-F1)
+XX E342K: model has L at 342, not E
+     -> [strong] annotated_offset: +24: E366K matches; UniProt: signal peptide 1-24; mature chain 'Alpha-1-antitrypsin' starts at 25 (explains 2/2 mismatched inputs) [pLDDT 93.25]
+XX E264V: model has L at 264, not E
+     -> [strong] annotated_offset: +24: E288V matches; UniProt: signal peptide 1-24; mature chain 'Alpha-1-antitrypsin' starts at 25 (explains 2/2 mismatched inputs) [pLDDT 97.25]
+```
+
+兩個突變一致指向 +24，證據是 strong。接著直接產生 PyMOL 腳本（ChimeraX 用 `--format chimerax`）：
+
+```bash
+python3 -m af_confidence P01009 -f examples/serpina1_alleles.txt --format pymol > serpina1.pml
+```
+
+在 PyMOL 中執行 `serpina1.pml` 的實際畫面：
+
+![PyMOL 中的 SERPINA1：Z 型與 S 型突變標在正確位置](docs/images/scenario_serpina1_pymol.png)
+
+*兩個洋紅色標記（E342K → 第 366 個、E264V → 第 288 個）落在深藍色的高信心核心結構上；左上方橘色的長尾巴是 N 端，訊號胜肽就在這一段，也就是傳統編號不算進去的部分。*
+
+**接下來：** 在 PyMOL 中調整視角、存圖，或用具名選取範圍 `afc_m1_fixed_strong` 做進一步分析（見[第 10 節](#10-在-pymol-中標出正確位置)；ChimeraX 見[第 9 節](#9-在-chimerax-中標出正確位置)）。
+
+### 情境 4：把資料庫的突變對照到 AlphaFold 結構
+
+**研究者在做什麼：** 研究生物素酶缺乏症，從 UniProt 下載生物素酶（BTD）的致病變異，想在 AlphaFold 結構上看這些位置。
+
+**會遇到的問題：** 資料庫的編號照理說和 AFDB 一致，但 UniProt 在 2026 年 1 月更新了 BTD 的標準序列（短了 20 個胺基酸），AFDB 的 P43251 模型還是舊序列。結果每個突變都差 20 格，而兩個網站都不會提醒。
+
+**怎麼用：** 範例清單 [`examples/btd_uniprot_variants.txt`](examples/btd_uniprot_variants.txt) 是三個 UniProt 天然變異（依現行 UniProt 編號）：
+
+```bash
+python3 -m af_confidence -f examples/btd_uniprot_variants.txt
+```
+
+```text
+P43251  (AlphaFold DB model AF-P43251-F1)
+  warning: the current UniProt sequence of P43251 (523 aa) differs from the AlphaFold DB model AF-P43251-F1 (543 aa): UniProt residue n = model residue n+20. Variants numbered on the current UniProt sequence will not match the model as written. AlphaFold DB model AF-P43251-4-F1 (P43251-4) has exactly the current UniProt sequence: use it for current UniProt numbering
+XX F108V: model has I at 108, not F
+     -> [strong] annotated_offset: +20: F128V matches; the AlphaFold DB model uses an older sequence; current UniProt residue n is model residue n+20 (explains 3/3 mismatched inputs) [pLDDT 98.56]
+     -> [strong] isoform: F108 matches isoform P43251-4 (AF-P43251-4-F1); explains 3/3 mismatched inputs [pLDDT 98.56]
+```
+
+**接下來：** 依警告的建議，改用 AFDB 的異構體 4 模型（`AF-P43251-4-F1`），它的序列與現行 UniProt 相同，突變位置可以照原寫法使用。用 `--format afdb`、`--format pymol` 產生的標記會同時列出兩個模型，各自換算好位置。**資料庫之間不同步是常態**：拿任何資料庫的編號對照 AFDB 結構前，先跑一次檢查。
+
+### 情境 5：請 AI 助理協助整理文獻
+
+**研究者在做什麼：** 請 Claude 這類 AI 助理讀幾篇論文、整理裡面提到的 APP 突變，並說明它們在結構上的位置。
+
+**會遇到的問題：** AI 助理會直接採用論文寫的編號，和人一樣不會發現編號系統的差異，還可能把錯的位置講得很肯定。
+
+**怎麼用：** 把 MCP 伺服器加入 AI 助理（見[第 12 節](#12-讓-ai-助理使用mcp-伺服器)）。之後可以這樣問：
+
+> 這幾篇論文提到 APP 的 A2T、A21G、E22G、E22Q、D23N 突變，請先用 af-confidence 檢查編號，再告訴我它們在 AlphaFold 模型上的位置。
+
+AI 回答的內容取決於模型，這裡不列出；以下是伺服器**實際回傳給 AI 的資料**，用真正的 MCP 用戶端取得：
+
+| 送出的突變 | E22G | D23N |
+|---|---|---|
+| 只送 E22G、D23N 兩個 | mismatch，最佳建議第 693 個，**weak** | **match**（沒有任何警告） |
+| 送出整份清單（5 個） | mismatch，最佳建議第 693 個，**strong** | **ambiguous_match**，建議第 694 個，medium |
+
+整份清單一起送出時，D23N 的回傳內容（節錄）：
+
+```json
+{
+  "input": "D23N",
+  "status": "ambiguous_match",
+  "model_residue_at_written_position": "D",
+  "message": "matches as written, but D694N (+671) also matches, the shift that explains 4/4 mismatched inputs",
+  "best_suggestions": [{"position": 694, "kind": "ambiguous_match", "strength": "medium", "plddt": 39.81}]
+}
+```
+
+**接下來：** 這也是伺服器給 AI 的使用說明要求「同一來源的突變要一起送出」、「medium 和 weak 不能說成確定」的原因。AI 整理完後，可以請它用 `export_markers` 產生 PyMOL 或 ChimeraX 腳本，接回情境 3 的作圖流程。重要的結論，仍請回到工具的原始輸出或文獻確認。
+
+---
+
 ## 專案目標、方法與實作規劃
 
 ### 要解決的問題
@@ -727,7 +891,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ### 融入研究者的日常工作流程
 
-研究者使用 AlphaFold 的日常流程大致是：在 AFDB 網站查詢瀏覽 → 下載模型到 ChimeraX 或 PyMOL 視覺化 → 用 Python 批次處理 → 結合 VEP、ProtVar 判讀突變；近年也開始透過 AI 助理（MCP）查詢。編號錯位發生在「**把文獻中的位置帶進 AFDB 網站或視覺化軟體**」的那一步，而這些工具都不會檢查編號。完整的調查與來源見 [`docs/workflow_research.md`](docs/workflow_research.md)。
+研究者使用 AlphaFold 的日常流程大致是：在 AFDB 網站查詢瀏覽 → 下載模型到 ChimeraX 或 PyMOL 視覺化 → 用 Python 批次處理 → 結合 VEP、ProtVar 判讀突變；近年也開始透過 AI 助理（MCP）查詢。編號錯位發生在「**把文獻中的位置帶進 AFDB 網站或視覺化軟體**」的那一步，而這些工具都不會檢查編號。完整的調查與來源見 [`docs/workflow_research.md`](docs/workflow_research.md)；五項整合在實際研究情境中的用法，見[研究情境](#研究情境把工具放進日常工作)。
 
 | 整合 | 接入的步驟 | 狀態 |
 |---|---|---|
@@ -739,8 +903,9 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ### 驗證方式
 
-- **自動化測試**：179 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；PyMOL 腳本與 MCP 伺服器另由一個獨立的 job 實際執行（在開源版 PyMOL 中執行腳本、用真正的 MCP 用戶端呼叫伺服器）；另有每週一次對真實 AFDB 與 UniProt API 的檢查，並實際執行一次 Colab 範例筆記本和 PyMOL 腳本，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- **自動化測試**：188 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；PyMOL 腳本與 MCP 伺服器另由一個獨立的 job 實際執行（在開源版 PyMOL 中執行腳本、用真正的 MCP 用戶端呼叫伺服器）；另有每週一次對真實 AFDB 與 UniProt API 的檢查，並實際執行一次 Colab 範例筆記本和 PyMOL 腳本，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 - **真實資料驗證**：`benchmark/`，固定亂數種子、可重現。
+- **文件與實際輸出一致**：「研究情境」一章中列出的每一行輸出，都由測試實際執行指令比對。
 - **人工核對**：示範案例的 pLDDT 與序列，對照 AFDB 與 UniProt 網站；ProtVar 行為以實際操作截圖記錄。
 
 ### 已知限制與未來規劃
@@ -776,7 +941,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 ```
 af_confidence/  工具本體（突變解析、資料來源、比對邏輯、命令列介面）
 tests/          自動化測試，離線使用 data/cache 的資料
-examples/       示範用的突變清單（APP 的 Aβ 編號、SERPINA1 的對偶基因、多蛋白質清單）與 Colab 範例筆記本
+examples/       示範用的突變清單（APP 的 Aβ 編號、SERPINA1 的對偶基因、BTD 的 UniProt 變異、多蛋白質清單）與 Colab 範例筆記本
 data/cache/     示範蛋白質的 AFDB 與 UniProt 資料
 benchmark/      用真實 UniProt 突變做的準確度驗證（程式、抽樣資料、結果）
 scripts/        第一天的可行性檢查、執行範例筆記本與 PyMOL 腳本的檢查程式

@@ -1,0 +1,7 @@
+# 生物素酶（BTD，UniProt P43251）的天然變異，依「現行」UniProt 編號書寫。
+# UniProt 在 2026-01-28 更新了標準序列（523 個胺基酸），AlphaFold DB 的 P43251 模型仍是舊的
+# 543 個胺基酸序列，所以這些位置放到該模型上全部差 20 格；AFDB 的異構體 4 模型與新序列相同。
+#
+P43251  F108V   # BTD 缺乏症；UniProt VAR_005113，dbSNP rs397514355
+P43251  A151T   # BTD 缺乏症；UniProt VAR_005114，dbSNP rs13073139
+P43251  P371S   # UniProt VAR_056238，dbSNP rs35034250
