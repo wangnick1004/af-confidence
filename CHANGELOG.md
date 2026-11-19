@@ -9,6 +9,11 @@ All notable changes to this project. Versions follow [Semantic Versioning](https
   ([使用說明.md](使用說明.md)): installing Python, downloading without git, writing variant
   lists, reading the output and evidence levels, exporting to Excel, troubleshooting.
 
+### Fixed
+- Offline runs of the biotinidase (P43251) example now show pLDDT for the isoform 4 model
+  suggestions: its confidence file was missing from `data/cache`
+  ([#1](https://github.com/wangnick1004/af-confidence/pull/1)).
+
 ## [0.1.0] - 2026-11-19
 
 First release: a command-line tool that maps protein-level variants written in the literature
