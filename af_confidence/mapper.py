@@ -6,11 +6,16 @@ pLDDT value of the matched residue is reported as AlphaFold DB provides it.
 With ~20 amino acids, any single residue matches at a random position about 1 time in 20,
 so an explanation is only called *strong* when it is unlikely to be a coincidence:
 
-``annotated_offset``   shift by a UniProt-annotated processing feature.
-                       strong: initiator Met, signal/transit peptide, propeptide or the main
-                       mature chain; or any other annotated fragment (e.g. amyloid-beta) that
-                       explains at least two of the mismatched variants.
-                       weak:   another fragment that explains only this variant.
+``annotated_offset``   shift by a UniProt-annotated processing feature (initiator Met,
+                       signal/transit peptide, propeptide, mature chain, other fragments such
+                       as amyloid-beta), or by a UniProt sequence update the AlphaFold DB model
+                       has not caught up with.
+                       strong: the shift explains >= 2 of the mismatched variants and that
+                               many coincidental matches has probability < 0.05 divided by
+                               the number of annotated shifts tried.
+                       medium: a primary feature (not a minor fragment) explains this variant
+                               only, and no other shift explains >= 2 variants.
+                       weak:   otherwise.
 ``consistent_offset``  one unannotated shift makes *all* mismatched variants match and the
                        expected number of such shifts by chance is < 0.05 (needs >= 2 variants).
                        strong.
@@ -28,6 +33,7 @@ that numbering, and the match at the written position is a coincidence.
 from __future__ import annotations
 
 from collections import Counter
+from math import comb
 from dataclasses import dataclass, field
 
 from .sources import Client, Model, ProteinData, SourceError
@@ -102,11 +108,15 @@ def annotated_offsets(protein: ProteinData) -> dict[int, Offset]:
                 primary.setdefault(start - 1, []).append(f"mature chain {name} starts at {start}")
             else:
                 fragments.setdefault(start - 1, []).append(name)
-    found = {k: Offset(k, "; ".join(v), True) for k, v in primary.items()}
+    found = {k: Offset(k, "UniProt: " + "; ".join(v), True) for k, v in primary.items()}
     for k, names in fragments.items():
         if k not in found:
-            found[k] = Offset(k, f"{', '.join(names)} start{'s' if len(names) == 1 else ''} "
+            found[k] = Offset(k, f"UniProt: {', '.join(names)} start{'s' if len(names) == 1 else ''} "
                                  f"at {k + 1}", False)
+    k = protein.uniprot_shift
+    if k:
+        found[k] = Offset(k, f"the AlphaFold DB model uses an older sequence; current UniProt "
+                             f"residue n is model residue n{k:+d}", True)
     return found
 
 
@@ -118,6 +128,15 @@ def expected_by_chance(sequence: str, refs: list[str], n_offsets: int) -> float:
     for r in refs:
         p *= comp.get(r, 0) / len(sequence)
     return p * n_offsets
+
+
+def chance_of_support(sequence: str, refs: list[str], support: int) -> float:
+    """Probability that a fixed shift matches at least ``support`` of the variants with
+    reference residues ``refs`` by chance (binomial tail, mean residue frequency)."""
+    comp = Counter(sequence)
+    n = len(refs)
+    p = sum(comp.get(r, 0) for r in refs) / (n * len(sequence))
+    return sum(comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(support, n + 1))
 
 
 def consistent_offset(model: Model, variants: list[Variant]) -> tuple[int, float] | None:
@@ -208,6 +227,14 @@ def _map(protein: ProteinData, variant_texts: list[str], client: Client) -> list
     isoforms = protein.models[1:]
     iso_support = {m.entry_id: sum(_residue(m, v.position) == v.ref for v in pvars) for m in isoforms}
     batch = consistent_offset(canon, pvars)
+    # an annotated shift is strong when that many matches would be unlikely by chance,
+    # corrected for the number of annotated shifts tried (Bonferroni)
+    refs = [v.ref for v in pvars]
+    alpha = CHANCE_THRESHOLD / max(1, len(offsets))
+    off_chance = {k: chance_of_support(canon.sequence, refs, s) if s else 1.0
+                  for k, s in off_support.items()}
+    supported = ({k for k, s in off_support.items() if s >= 2 and off_chance[k] < alpha}
+                 | ({batch[0]} if batch else set()))
 
     def support_note(k: int) -> str:
         return f"explains {k}/{n_prob} mismatched input{'s' if n_prob > 1 else ''}"
@@ -218,12 +245,18 @@ def _map(protein: ProteinData, variant_texts: list[str], client: Client) -> list
             p = v.position + k
             if _residue(canon, p) != v.ref:
                 continue
-            strong = off.primary or off_support[k] >= 2
+            # A single coincidental match happens ~1 time in 20, so one variant alone is only
+            # medium evidence; agreement of >= 2 variants makes it strong.
+            if k in supported:
+                strength = "strong"
+            elif off.primary and not (supported - {k}):
+                strength = "medium"
+            else:
+                strength = "weak"
             sugg.append(Suggestion(
-                "annotated_offset", "strong" if strong else "weak", p, canon.entry_id,
-                f"{k:+d}: {v.ref}{p}{v.alt} matches; UniProt: {off.reason}, so {v} may use "
-                f"numbering that starts there ({support_note(off_support[k])})",
-                plddt_at(canon, p)))
+                "annotated_offset", strength, p, canon.entry_id,
+                f"{k:+d}: {v.ref}{p}{v.alt} matches; {off.reason} "
+                f"({support_note(off_support[k])})", plddt_at(canon, p)))
         if batch and batch[0] not in offsets:
             k, chance = batch
             p = v.position + k
@@ -265,7 +298,7 @@ def _map(protein: ProteinData, variant_texts: list[str], client: Client) -> list
     # matches that would also fit the shift that explains the rest of the batch
     batch_shifts: dict[int, str] = {}
     for k, off in offsets.items():
-        if off_support[k] >= 2:
+        if k in supported:
             batch_shifts[k] = off.reason
     if batch and batch[0] not in batch_shifts:
         batch_shifts[batch[0]] = "consistent shift of the other inputs"

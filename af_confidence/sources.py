@@ -66,6 +66,7 @@ class ProteinData:
     processing: list[tuple[str, int, int, str]] = field(default_factory=list)
     # (feature type, start, end, description) for Initiator methionine, Signal, Chain, ...
     warnings: list[str] = field(default_factory=list)
+    uniprot_shift: int = 0     # model residue = current UniProt residue + uniprot_shift
 
     @property
     def canonical(self) -> Model:
@@ -231,34 +232,61 @@ class Client:
             out.append((f.get("type", ""), start, end, f.get("description", "")))
         return out, d.get("sequence", {}).get("value", "")
 
-    def processing_features(self, accession: str) -> list[tuple[str, int, int, str]]:
+    def uniprot_data(self, accession: str) -> tuple[list[tuple[str, int, int, str]], str]:
+        """Processing features and current UniProt sequence of ``accession``.
+
+        UniProt annotates processing on the canonical entry only. For an isoform, N-terminal
+        features (initiator Met, signal/transit peptide, propeptide starting at 1) carry over
+        when the isoform's N-terminus is identical over that stretch.
+        """
         feats, seq = self._features(accession)
         base = accession.split("-")[0]
         if feats or accession == base:
-            return feats
-        # UniProt annotates processing on the canonical entry only. N-terminal features
-        # (initiator Met, signal/transit peptide, propeptide starting at 1) carry over to an
-        # isoform when the isoform's N-terminus is identical over that stretch.
+            return feats, seq
         base_feats, base_seq = self._features(base)
         return [f for f in base_feats
                 if f[1] == 1 and f[0] in ("Initiator methionine", "Signal", "Transit peptide",
                                           "Propeptide")
-                and seq and base_seq and seq[:f[2] + 1] == base_seq[:f[2] + 1]]
+                and seq and base_seq and seq[:f[2] + 1] == base_seq[:f[2] + 1]], seq
+
+    def processing_features(self, accession: str) -> list[tuple[str, int, int, str]]:
+        return self.uniprot_data(accession)[0]
 
     def protein(self, query: str) -> ProteinData:
         accession = self.resolve(query)
         models = self.models(accession)
-        warnings = []
+        model = models[0]
+        warnings: list[str] = []
+        shift = 0
         try:
-            processing = self.processing_features(accession)
+            processing, uni_seq = self.uniprot_data(accession)
         except SourceError as exc:
-            processing = []
+            processing, uni_seq = [], ""
             warnings.append(f"UniProt processing annotations unavailable ({exc}); "
                             f"annotated offsets were not checked")
-        if not models[0].uniprot_sequence_matches:
-            warnings.append(f"the AlphaFold DB model {models[0].entry_id} was built on an older "
+        if uni_seq and uni_seq != model.sequence:
+            # AlphaFold DB can lag behind UniProt sequence updates. UniProt annotations are on
+            # the current UniProt sequence, so they can only be used if the two can be aligned.
+            i, j = model.sequence.find(uni_seq), uni_seq.find(model.sequence)
+            if i > 0 or j > 0:
+                shift = i if i > 0 else -j
+                processing = [(ty, s + shift, e + shift, d) for ty, s, e, d in processing
+                              if s + shift >= 1]
+                warnings.append(
+                    f"the current UniProt sequence of {accession} ({len(uni_seq)} aa) differs from "
+                    f"the AlphaFold DB model {model.entry_id} ({len(model.sequence)} aa): UniProt "
+                    f"residue n = model residue n{shift:+d}. Variants numbered on the current "
+                    f"UniProt sequence will not match the model as written")
+            else:
+                processing = []
+                warnings.append(
+                    f"the current UniProt sequence of {accession} differs from the AlphaFold DB "
+                    f"model {model.entry_id} and cannot be aligned by a simple shift; UniProt "
+                    f"annotations were not used")
+        elif not model.uniprot_sequence_matches:
+            warnings.append(f"the AlphaFold DB model {model.entry_id} was built on an older "
                             f"UniProt sequence; positions are checked against the model sequence")
-        return ProteinData(query.strip(), accession, models, processing, warnings)
+        return ProteinData(query.strip(), accession, models, processing, warnings, shift)
 
 
 def _host(url: str) -> str:

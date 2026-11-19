@@ -6,7 +6,8 @@ Map protein-level variants written in the literature (e.g. `E6V`) onto the corre
 AlphaFold DB model, and explain numbering mismatches with evidence before anyone interprets a
 structure.
 
-> Status: v0.1 complete on the command line; 80 offline tests pass on Python 3.9 and 3.13.
+> Status: v0.1 complete on the command line; 85 offline tests pass on Python 3.9 and 3.13.
+> Accuracy measured on 735 real UniProt variants: see [Benchmark](#benchmark).
 > Daily reports with sources and review checklists are in `docs/`.
 
 ## Why
@@ -46,9 +47,8 @@ Without installing: `python3 -m af_confidence P68871 E6V`.
 ```
 P68871  (AlphaFold DB model AF-P68871-F1)
 XX E6V: model has P at 6, not E
-     -> [strong] annotated_offset: +1: E7V matches; UniProt: initiator Met removed; mature chain
-        'Hemoglobin subunit beta' starts at 2, so E6V may use numbering that starts there
-        (explains 1/1 mismatched input) [pLDDT 96.56]
+     -> [medium] annotated_offset: +1: E7V matches; UniProt: initiator Met removed; mature chain
+        'Hemoglobin subunit beta' starts at 2 (explains 1/1 mismatched input) [pLDDT 96.56]
 ```
 
 ### Input
@@ -116,7 +116,7 @@ is to be a coincidence (any single residue matches a random position about 1 tim
 
 | Kind | Meaning | Strength |
 |---|---|---|
-| `annotated_offset` | shifting by a UniProt processing feature gives a match | **strong** for initiator Met, signal/transit peptide, propeptide, main mature chain, or any fragment that explains ≥2 inputs; **weak** for a fragment explaining one input |
+| `annotated_offset` | shifting by a UniProt processing feature (initiator Met, signal/transit peptide, propeptide, mature chain, other fragments), or by a UniProt sequence update the AlphaFold DB model has not caught up with, gives a match | **strong** if it explains ≥2 inputs and that many coincidences has probability < 0.05 / number of shifts tried; **medium** if a primary feature explains this one input and no other shift is strong; **weak** otherwise |
 | `consistent_offset` | one unannotated shift makes *all* mismatched inputs match; expected number of such shifts by chance < 0.05 | **strong** (needs ≥2 inputs) |
 | `isoform` | matches at the same number in an AlphaFold DB isoform model | **strong** if one isoform explains every mismatched input (≥2), else **weak** |
 | `swapped` | the model already has the alternate residue | **medium** |
@@ -129,11 +129,44 @@ Each suggestion shows the AlphaFold DB model and the pLDDT at that residue, as p
 AlphaFold DB (not reinterpreted).
 
 Warnings are printed when UniProt annotations could not be loaded (offsets not checked) or when
-the AlphaFold DB model was built on an older UniProt sequence than the current one.
+the AlphaFold DB model was built on an older UniProt sequence than the current one. In that case
+the tool aligns the two sequences: if one is a stretch of the other (e.g. UniProt moved the
+canonical start codon), UniProt annotations are converted to model positions and the shift is
+offered as an explanation; otherwise UniProt annotations are not used.
 
 For an isoform accession, UniProt annotates processing on the canonical entry only; N-terminal
 features (initiator Met, signal/transit peptide, propeptide) are used for the isoform when its
 N-terminus is identical over that stretch.
+
+## Benchmark
+
+`benchmark/run_benchmark.py` samples 200 reviewed human UniProt entries (fixed seed) with a signal
+peptide or a removed initiator Met and uses their natural variants (positioned by UniProt, hence
+ground truth) after rewriting them the way the literature often does. Full table:
+[`benchmark/results.md`](benchmark/results.md); the sampled data: `benchmark/dataset.tsv`.
+
+Main results (193 proteins, 735 variants, checked 2026-11-19):
+
+| Scenario | True position is the top suggestion | A wrong position marked strong |
+|---|---|---|
+| Correct UniProt numbering (should simply match) | 735/735 match | – |
+| Mature/legacy numbering, one variant at a time | 92.4% (as medium) | 0% |
+| Mature/legacy numbering, whole list | 99.4% (92% strong) | 0% |
+| Unannotated shift of 5–60, whole list (≥3 variants) | 81.6% | 0.3% |
+| Unannotated shift or ±1–3 typo, one variant | – (cannot be known) | 0% |
+
+What the numbers mean in practice:
+
+- **Strong** suggestions pointed to a wrong position for 2 of 2,401 inputs. **Medium** (one variant, annotated
+  shift) is right about 9 times in 10; the rest are coincidences that cannot be told apart from a
+  single variant (e.g. a typo of −1 looks exactly like "initiator Met not counted").
+- 7–9% of single variants written in legacy numbering match the model *by coincidence* and
+  cannot be detected alone; in whole lists, most of these are flagged `ambiguous_match`
+  (silent misses drop to < 1%). **Check whole lists, not single variants.**
+- While building the benchmark the tool found a real discrepancy: UniProt changed the canonical
+  sequence of biotinidase (P43251) in 2026, 20 residues shorter at the N-terminus, while the
+  AlphaFold DB model still uses the old sequence, so all UniProt-numbered variants are off by 20
+  on the model.
 
 ## What it does NOT do
 
@@ -152,6 +185,7 @@ af_confidence/  The tool (variant parser, data sources, mapper, CLI)
 tests/          Offline tests against data/cache
 examples/       Variant lists for the demo (APP amyloid-beta numbering, SERPINA1 alleles)
 data/cache/     AlphaFold DB and UniProt responses for the demo proteins
+benchmark/      Accuracy benchmark on real UniProt variants (script, sampled data, results)
 scripts/        Day-1 feasibility checks
 docs/           Daily reports, demo commands, screenshots
 ```

@@ -105,9 +105,25 @@ def strengths(result):
     return [(s.kind, s.strength) for s in result.suggestions]
 
 
-def test_primary_offsets_are_strong(client):
+def test_single_variant_annotated_offset_is_medium(client):
+    # one variant can match an annotated shift by coincidence (~1 in 20): medium, not strong
     (r,) = map_variants("P68871", ["E6V"], client)
-    assert strengths(r) == [("annotated_offset", "strong")]
+    assert strengths(r) == [("annotated_offset", "medium")]
+
+
+def test_two_variants_on_same_annotated_offset_are_strong(client):
+    results = map_variants("P01009", ["E342K", "E264V"], client)
+    assert all(strengths(r) == [("annotated_offset", "strong")] for r in results)
+
+
+def test_primary_offset_with_one_variant_is_weak_when_batch_points_elsewhere(client):
+    # A2T and E22G share +671 (amyloid-beta); F19L alone fits... nothing primary, so check that
+    # no primary single-match is promoted when another shift explains >= 2 inputs
+    results = map_variants("P05067", ["A2T", "E22G", "L4V"], client)
+    for r in results:
+        for s in r.suggestions:
+            if s.kind == "annotated_offset" and "explains 1/" in s.note:
+                assert s.strength == "weak"
 
 
 def test_app_abeta_batch(client):
@@ -120,6 +136,19 @@ def test_app_abeta_batch(client):
         assert "Amyloid-beta protein 42" in r.suggestions[0].note
 
 
+def test_uniprot_sequence_update_is_detected(client):
+    # Biotinidase: UniProt changed the canonical sequence in 2026 (now 20 residues shorter at
+    # the N-terminus); the AlphaFold DB model still uses the old 543-aa sequence
+    p = client.protein("P43251")
+    assert p.uniprot_shift == 20
+    assert any("current UniProt sequence" in w for w in p.warnings)
+    results = map_variants("P43251", ["F108V", "A151T", "P371S"], client)
+    for r, true_pos in zip(results, [128, 171, 391]):
+        assert r.status == "mismatch"
+        assert r.suggestions[0].kind == "annotated_offset"
+        assert r.suggestions[0].strength == "strong" and r.suggestions[0].position == true_pos
+
+
 def test_app_single_fragment_offset_is_weak(client):
     (r,) = map_variants("P05067", ["A2T"], client)
     assert r.suggestions and all(s.strength == "weak" for s in r.suggestions)
@@ -128,8 +157,10 @@ def test_app_single_fragment_offset_is_weak(client):
 
 def test_coincidental_match_flagged_in_batch(client):
     # Iowa D23N (Abeta numbering) = D694N; residue 23 of APP770 also happens to be D
-    results = map_variants("P05067", ["A2T", "E22G", "D23N"], client)
-    d23n = results[2]
+    # (with ~16 annotated APP fragments, two agreeing variants are not enough for strong
+    # evidence after correction for multiple shifts; three are)
+    results = map_variants("P05067", ["A2T", "A21G", "E22G", "D23N"], client)
+    d23n = results[3]
     assert d23n.status == "ambiguous_match"
     assert [s.position for s in d23n.suggestions] == [694]
 
@@ -149,3 +180,16 @@ def test_weak_hidden_when_strong_exists(client):
     # E6V has a strong explanation, so no 'nearby' noise is shown
     (r,) = map_variants("P68871", ["E6V"], client)
     assert "nearby" not in kinds(r)
+
+
+def test_two_variants_not_enough_with_many_fragments(client):
+    results = map_variants("P05067", ["A2T", "E22G"], client)
+    assert all(s.strength != "strong" for r in results for s in r.suggestions)
+
+
+def test_chance_of_support():
+    from af_confidence.mapper import chance_of_support
+    seq = "ACDEFGHIKLMNPQRSTVWY"           # every residue 1/20
+    assert chance_of_support(seq, ["A"], 1) == pytest.approx(0.05)
+    assert chance_of_support(seq, ["A", "C"], 2) == pytest.approx(0.0025)
+    assert chance_of_support(seq, ["A", "C"], 0) == pytest.approx(1.0)

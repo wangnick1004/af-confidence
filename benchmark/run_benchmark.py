@@ -122,6 +122,13 @@ class Tally:
     def score(self, result, true_pos: int, expect_strong: bool = True) -> None:
         self.c["n"] += 1
         strong = [s for s in result.suggestions if s.strength == "strong"]
+        confident = [s for s in result.suggestions if s.strength in ("strong", "medium")]
+        if any(s.position == true_pos for s in confident):
+            self.c["recovered_confident"] += 1
+        if any(s.position != true_pos for s in confident):
+            self.c["wrong_confident"] += 1
+        if not expect_strong and confident:
+            self.c["unexpected_confident"] += 1
         if result.status == "match":
             self.c["silent_match"] += 1             # coincidence, nothing flagged
         if result.status == "ambiguous_match":
@@ -158,6 +165,14 @@ def run(client: Client, proteins: list[dict]):
             continue
         print(f"[{i}/{len(proteins)}] {acc} ({len(vs)} variants)", file=sys.stderr)
         tag = p["kind"]
+        if protein.uniprot_shift or any("differs from the AlphaFold DB model" in w
+                                        for w in protein.warnings):
+            # UniProt positions are not model positions here, so they are no ground truth.
+            res = map_variants(acc, vs, client)
+            p["discrepancy"] = (protein.warnings[0], sum(r.status != "match" for r in res), len(vs))
+            skipped["current UniProt sequence differs from the AlphaFold DB model (see below)"] += 1
+            p["skip"] = "UniProt sequence differs from AlphaFold DB model"
+            continue
 
         # A. correct numbering, whole list
         for r in map_variants(acc, vs, client):
@@ -215,6 +230,15 @@ def write_report(t, skipped, proteins, path: Path, elapsed: float) -> None:
     for reason, n in skipped.items():
         L.append(f"- skipped {n}: {reason}")
     L.append("")
+    disc = [p for p in proteins if "discrepancy" in p]
+    if disc:
+        L.append("\n### Real discrepancies found while building the benchmark\n")
+        for p in disc:
+            w, n_bad, n = p["discrepancy"]
+            L.append(f"- **{p['accession']}**: {w}. {n_bad} of its {n} UniProt variants do not "
+                     f"match the model as written; the tool explains them with the "
+                     f"sequence-update shift.")
+        L.append("")
     L.append("## A. Correct (UniProt) numbering — should all match\n")
     L.append("| set | variants | match | ambiguous_match | mismatch / other |")
     L.append("|---|---|---|---|---|")
@@ -225,10 +249,11 @@ def write_report(t, skipped, proteins, path: Path, elapsed: float) -> None:
                  f"{pct(c['status_ambiguous_match'], c['n'])} | {pct(other, c['n'])} |")
     L.append("")
     L.append("## B–D. Wrong numbering — should recover the true position\n")
-    L.append("| scenario | inputs | true position as strong suggestion | true position is top suggestion "
-             "| only the true position is strong | a wrong position is strong | silent match "
-             "(coincidence, not flagged) | flagged as ambiguous_match |")
-    L.append("|---|---|---|---|---|---|---|---|")
+    L.append("| scenario | inputs | true position is the top suggestion | true position as strong "
+             "| true position as strong or medium | a wrong position as strong "
+             "| a wrong position as strong or medium | silent match (coincidence, not flagged) "
+             "| flagged ambiguous_match |")
+    L.append("|---|---|---|---|---|---|---|---|---|")
     names = {
         "B_signal": "B. signal-peptide numbering, one variant",
         "B_init_met": "B. no-initiator-Met numbering, one variant",
@@ -239,19 +264,21 @@ def write_report(t, skipped, proteins, path: Path, elapsed: float) -> None:
     for key, name in names.items():
         c = t[key].c
         n = c["n"]
-        L.append(f"| {name} | {n} | {pct(c['recovered_strong'], n)} | {pct(c['top_correct'], n)} | "
-                 f"{pct(c['only_correct_strong'], n)} | {pct(c['wrong_strong'], n)} | "
-                 f"{pct(c['silent_match'], n)} | {pct(c['flagged_ambiguous'], n)} |")
+        L.append(f"| {name} | {n} | {pct(c['top_correct'], n)} | {pct(c['recovered_strong'], n)} | "
+                 f"{pct(c['recovered_confident'], n)} | {pct(c['wrong_strong'], n)} | "
+                 f"{pct(c['wrong_confident'], n)} | {pct(c['silent_match'], n)} | "
+                 f"{pct(c['flagged_ambiguous'], n)} |")
     L.append("")
-    L.append("## D/E. Cases where no strong evidence should be given\n")
-    L.append("| scenario | inputs | any strong suggestion (should be ~0) | true position among weak suggestions "
-             "| silent match |")
-    L.append("|---|---|---|---|---|")
+    L.append("## D/E. Cases where no confident evidence should be given\n")
+    L.append("| scenario | inputs | any strong suggestion | any strong or medium suggestion "
+             "| true position among all suggestions | silent match |")
+    L.append("|---|---|---|---|---|---|")
     for key, name in (("D_single", "D. unannotated shift, one variant"),
                       ("E_typo", "E. typo of ±1–3 positions, one variant")):
         c = t[key].c
         n = c["n"]
-        L.append(f"| {name} | {n} | {pct(c['unexpected_strong'], n)} | {pct(c['recovered_any'], n)} | "
+        L.append(f"| {name} | {n} | {pct(c['unexpected_strong'], n)} | "
+                 f"{pct(c['unexpected_confident'], n)} | {pct(c['recovered_any'], n)} | "
                  f"{pct(c['silent_match'], n)} |")
     L.append("")
     path.write_text("\n".join(L) + "\n")
