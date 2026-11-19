@@ -1,0 +1,5 @@
+# variants collected from several papers
+HBB      E6V            # sickle cell, legacy numbering
+SERPINA1 E342K, E264V   # Z and S alleles
+P04637   R175H R72P
+TTN      R100W          # titin: no AlphaFold DB model

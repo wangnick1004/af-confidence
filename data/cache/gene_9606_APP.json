@@ -1,0 +1,1 @@
+{"results": [{"entryType": "UniProtKB reviewed (Swiss-Prot)", "primaryAccession": "P05067", "genes": [{"geneName": {"evidences": [{"evidenceCode": "ECO:0000312", "source": "HGNC", "id": "HGNC:620"}], "value": "APP"}}], "extraAttributes": {"uniParcId": "UPI000002DB1C"}}]}

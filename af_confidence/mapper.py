@@ -30,7 +30,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 
-from .sources import Client, Model, ProteinData
+from .sources import Client, Model, ProteinData, SourceError
 from .variants import Variant, VariantParseError, parse_variant
 
 NEARBY_WINDOW = 3
@@ -141,9 +141,34 @@ def consistent_offset(model: Model, variants: list[Variant]) -> tuple[int, float
     return hits[0], chance
 
 
-def map_variants(accession: str, variant_texts: list[str], client: Client | None = None) -> list[Result]:
+@dataclass
+class ProteinReport:
+    query: str                         # what the user typed for the protein
+    accession: str = ""
+    entry_id: str = ""
+    results: list[Result] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    error: str = ""                    # set when the protein itself could not be loaded
+
+
+def check_protein(query: str, variant_texts: list[str], client: Client | None = None) -> ProteinReport:
+    """Like map_variants, but never raises for data problems: errors go into the report."""
     client = client or Client()
-    protein = client.protein(accession)
+    try:
+        protein = client.protein(query)
+    except SourceError as exc:
+        return ProteinReport(query, error=str(exc))
+    return ProteinReport(query, protein.accession, protein.canonical.entry_id,
+                         _map(protein, variant_texts, client), list(protein.warnings))
+
+
+def map_variants(query: str, variant_texts: list[str], client: Client | None = None) -> list[Result]:
+    """Check variants of one protein (accession or gene name). Raises SourceError."""
+    client = client or Client()
+    return _map(client.protein(query), variant_texts, client)
+
+
+def _map(protein: ProteinData, variant_texts: list[str], client: Client) -> list[Result]:
     canon = protein.canonical
 
     def plddt_at(model: Model, pos: int) -> float | None:

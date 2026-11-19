@@ -6,7 +6,7 @@ Map protein-level variants written in the literature (e.g. `E6V`) onto the corre
 AlphaFold DB model, and explain numbering mismatches with evidence before anyone interprets a
 structure.
 
-> Status: Day 3 of 7 — v0.1 works on the command line; 44 offline tests pass on Python 3.9–3.13.
+> Status: v0.1 complete on the command line; 80 offline tests pass on Python 3.9 and 3.13.
 > Daily reports with sources and review checklists are in `docs/`.
 
 ## Why
@@ -51,15 +51,59 @@ XX E6V: model has P at 6, not E
         (explains 1/1 mismatched input) [pLDDT 96.56]
 ```
 
-A list of variants from a paper or a review, one or more per line, `#` for comments:
+### Input
 
-```bash
-af-confidence P05067 -f examples/app_abeta_numbering.txt
+The first word is the protein, the rest are variants:
+
+| Protein as | Example |
+|---|---|
+| UniProt accession | `af-confidence P68871 E6V` |
+| Gene name (human by default) | `af-confidence HBB E6V` |
+| Isoform accession | `af-confidence P04637-2 R175H` |
+| Gene name in another organism | `af-confidence Trp53 R172H --organism 10090` |
+
+Variants: `E6V`, `p.E6V`, `Glu6Val`, `p.Glu6Val`, `p.(Glu6Val)`, nonsense `R213*` / `p.Arg213Ter`;
+separate them with spaces or commas.
+
+A list from one or more papers: `-f FILE` (can be repeated). One line per protein, `#` starts a
+comment:
+
+```
+# variants collected from several papers
+HBB      E6V            # sickle cell, legacy numbering
+SERPINA1 E342K, E264V   # Z and S alleles
+P04637   R175H R72P
 ```
 
-Options: `-f/--file FILE`, `--format text|tsv|json`, `--cache DIR`, `--offline` (cached files only).
+```bash
+af-confidence -f my_variants.txt
+```
+
+Lines without a protein use the one given on the command line, e.g.
+`af-confidence APP -f examples/app_abeta_numbering.txt`. Entries for the same protein (by gene name
+or accession) are checked together, so batch evidence uses all of them. A protein that cannot be
+loaded is reported as an error without stopping the others.
+
+Some gene names look like variants (`C1S`, `F2R`, `C4A`): at the start of a line in a file they are
+read as the protein; when a protein is also given on the command line they are read as variants.
+Use the UniProt accession if in doubt.
+
+### Options and output
+
+| Option | Meaning |
+|---|---|
+| `-f`, `--file FILE` | read `[PROTEIN] VARIANT ...` lines (repeatable) |
+| `--organism TAXID` | NCBI taxonomy ID for gene-name lookup (default 9606, human; mouse 10090) |
+| `--format text\|tsv\|json` | `tsv` opens in Excel; one row per suggestion |
+| `--cache DIR` | cache directory (default `~/.cache/af-confidence`) |
+| `--offline` | use cached files only |
+
 The demo proteins are cached in `data/cache`, so `--cache data/cache --offline` works without network.
-Exit code: 0 if every variant matches unambiguously, 1 otherwise, 2 on a data/network error.
+Network requests are retried 3 times with back-off; cache files are written atomically and a
+corrupt cache file is fetched again.
+
+Exit code: 0 if every variant matches unambiguously, 1 otherwise, 2 if a protein could not be
+loaded or a network error occurred.
 
 Run the tests: `python3 -m pip install pytest && python3 -m pytest`.
 
@@ -83,6 +127,13 @@ that strongly explains the other inputs of the same batch.
 
 Each suggestion shows the AlphaFold DB model and the pLDDT at that residue, as provided by
 AlphaFold DB (not reinterpreted).
+
+Warnings are printed when UniProt annotations could not be loaded (offsets not checked) or when
+the AlphaFold DB model was built on an older UniProt sequence than the current one.
+
+For an isoform accession, UniProt annotates processing on the canonical entry only; N-terminal
+features (initiator Met, signal/transit peptide, propeptide) are used for the isoform when its
+N-terminus is identical over that stretch.
 
 ## What it does NOT do
 

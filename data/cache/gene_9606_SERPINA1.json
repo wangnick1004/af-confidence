@@ -1,0 +1,1 @@
+{"results": [{"entryType": "UniProtKB reviewed (Swiss-Prot)", "primaryAccession": "P01009", "genes": [{"geneName": {"evidences": [{"evidenceCode": "ECO:0000312", "source": "HGNC", "id": "HGNC:8941"}], "value": "SERPINA1"}}], "extraAttributes": {"uniParcId": "UPI000000CBEC"}}]}
