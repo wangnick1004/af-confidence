@@ -4,13 +4,13 @@
 
 把文獻中的突變位置，正確對應到 AFDB 模型上
 
-> 目前版本 v0.1.0（[更新紀錄](CHANGELOG.md)）。準確度驗證見 [Benchmark](#benchmark)；專案目標與方法見
-> [專案目標、方法與實作規劃](#專案目標方法與實作規劃)。
+> 目前版本 v0.1.0（[更新紀錄](CHANGELOG.md)）。另見 [專案目標、方法與實作規劃](#專案目標方法與實作規劃)、
+> [準確度驗證](#準確度驗證)。
 
 ## 中文使用說明
 
 這份說明寫給**沒有程式背景**的使用者：照著做就能在自己的電腦上使用這個工具。
-（專案目標、方法與準確度驗證請看本頁後面的 [專案目標、方法與實作規劃](#專案目標方法與實作規劃) 和 [Benchmark](#benchmark)。）
+（專案目標、方法與準確度驗證請看本頁後面的 [專案目標、方法與實作規劃](#專案目標方法與實作規劃) 和 [準確度驗證](#準確度驗證)。）
 
 ---
 
@@ -489,7 +489,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 | 第 2 天 | v0.1 命令列工具與離線測試 | 完成解析、比對、位移與異構體檢查；以 UniProt 官方變異編號（VAR_002863、VAR_007004）證實 HbS 與 Z 型的位移成因。實測 ProtVar：會警告不符，但改用錯誤位置繼續分析 |
 | 第 3 天 | 證據強度、清單輸入、巧合偵測 | 加入 strong／medium／weak；用 APP 的 Aβ 編號清單發現 D23N 碰巧對上的「靜默錯誤」，新增 `ambiguous_match` |
 | 第 4 天 | 基礎補強 | 基因名稱、其他物種、異構體輸入、多蛋白質清單、網路重試、快取損壞處理、資料缺失警告 |
-| 第 5 天 | 用真實資料驗證準確度 | 735 個 UniProt 天然變異的驗證（見 [Benchmark](#benchmark)）。發現 BTD（P43251）的 AFDB 模型落後 UniProt 序列更新，並修正標註位置換算的 bug；依數據把單一突變的標註位移從 strong 降為 medium，多突變改用二項檢定加 Bonferroni 校正 |
+| 第 5 天 | 用真實資料驗證準確度 | 735 個 UniProt 天然變異的驗證（見 [準確度驗證](#準確度驗證)）。發現 BTD（P43251）的 AFDB 模型落後 UniProt 序列更新，並修正標註位置換算的 bug；依數據把單一突變的標註位移從 strong 降為 medium，多突變改用二項檢定加 Bonferroni 校正 |
 | 最終檢查 | 從全新 clone 驗證整個 repo | 修正 AFDB 查無模型時未快取（離線結果不一致）、驗證抽樣在不同執行間不穩定兩個問題 |
 | 開源配備 | 自動測試、版本發布、測試補強 | GitHub Actions（3 種作業系統 × 5 個 Python 版本，加每週的線上 API 檢查）、CHANGELOG、貢獻指南、v0.1.0 版本標籤；補測試讓覆蓋率從 95% 提高到 99%；修正非 ASCII 字元在 Windows 終端機可能造成當機的問題 |
 
@@ -508,46 +508,35 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 - 網頁介面（靜態頁面，放在 GitHub Pages），讓不用終端機的人也能貼上清單使用
 - 透過 Ensembl VEP 支援 DNA 層級寫法；模式生物與人類同源蛋白質的編號對應
 
-## Benchmark
+## 準確度驗證
 
-`benchmark/run_benchmark.py` samples 200 reviewed human UniProt entries (fixed seed) with a signal
-peptide or a removed initiator Met and uses their natural variants (positioned by UniProt, hence
-ground truth) after rewriting them the way the literature often does. Full table:
-[`benchmark/results.md`](benchmark/results.md); the sampled data: `benchmark/dataset.tsv`.
+驗證程式是 `benchmark/run_benchmark.py`。它用固定的亂數種子，從 UniProt 抽出 200 個已審核的人類蛋白質：150 個有訊號胜肽，50 個只有起始甲硫胺酸被移除。驗證使用這些蛋白質的天然變異；UniProt 是依標準序列標註它們的位置，所以可以當作正確答案。接著把這些突變改寫成文獻常見的錯誤編號，再交給工具，看它能不能找回正確位置。完整結果見 [`benchmark/results.md`](benchmark/results.md)，抽樣資料見 `benchmark/dataset.tsv`。
 
-Main results (193 proteins, 735 variants, checked 2026-11-19):
+主要結果（193 個蛋白質、735 個突變，2026-11-19 驗證）：
 
-| Scenario | True position is the top suggestion | A wrong position marked strong |
+| 情境 | 正確位置是第一個建議 | 錯誤位置被標為 strong |
 |---|---|---|
-| Correct UniProt numbering (should simply match) | 735/735 match | – |
-| Mature/legacy numbering, one variant at a time | 92.4% (as medium) | 0% |
-| Mature/legacy numbering, whole list | 99.4% (92% strong) | 0% |
-| Unannotated shift of 5–60, whole list (≥3 variants) | 81.6% | 0.3% |
-| Unannotated shift or ±1–3 typo, one variant | – (cannot be known) | 0% |
+| 照 UniProt 正確編號輸入（應該直接對上） | 735/735 都對得上 | – |
+| 成熟蛋白質或傳統編號，一次輸入一個突變 | 92.4%（標為 medium） | 0% |
+| 成熟蛋白質或傳統編號，整份清單一起輸入 | 99.4%（其中 92% 為 strong） | 0% |
+| 沒有標註依據的位移（5～60 格），整份清單（至少 3 個突變） | 81.6% | 0.3% |
+| 沒有標註依據的位移，或打錯 1～3 格，一次輸入一個突變 | –（原理上無法得知） | 0% |
 
-What the numbers mean in practice:
+這些數字在實際使用上的意義：
 
-- **Strong** suggestions pointed to a wrong position for 2 of 2,401 inputs. **Medium** (one variant, annotated
-  shift) is right about 9 times in 10; the rest are coincidences that cannot be told apart from a
-  single variant (e.g. a typo of −1 looks exactly like "initiator Met not counted").
-- 7–9% of single variants written in legacy numbering match the model *by coincidence* and
-  cannot be detected alone; in whole lists, most of these are flagged `ambiguous_match`
-  (silent misses drop to < 1%). **Check whole lists, not single variants.**
-- While building the benchmark the tool found a real discrepancy: UniProt changed the canonical
-  sequence of biotinidase (P43251) in 2026, 20 residues shorter at the N-terminus, while the
-  AlphaFold DB entry for P43251 still uses the old sequence, so all UniProt-numbered variants are
-  off by 20 on that model. AlphaFold DB does have a model with the new sequence, filed under
-  isoform 4 (AF-P43251-4-F1); the tool now points to it in its warning.
+- **strong** 的建議在 2,401 筆輸入中，只有 2 筆指向錯誤位置。**medium**（只有一個突變符合標註的位移）大約 10 次對 9 次；剩下的是單看一個突變分辨不出來的巧合，例如「打錯一格」和「不算起始甲硫胺酸」看起來一模一樣。
+- 用傳統編號寫的單一突變，有 7～9% 會**碰巧**和模型對上，單獨檢查時無法發現；整份清單一起檢查時，大部分會被標示 `ambiguous_match`，漏網的降到 1% 以下。**請整份清單一起檢查，不要一個一個查。**
+- 建立驗證資料時，工具發現了一個真實的資料不一致：UniProt 在 2026 年更新了生物素酶（P43251）的標準序列，N 端少了 20 個胺基酸，但 AFDB 中 P43251 的模型仍是舊序列，所以用 UniProt 編號的突變放到這個模型上，全部差 20 格。AFDB 其實有一個和新序列相同的模型，放在異構體 4 底下（AF-P43251-4-F1）；工具現在會在警告中指出這個模型。
 
-## Repository layout
+## 檔案結構
 
 ```
-af_confidence/  The tool (variant parser, data sources, mapper, CLI)
-tests/          Offline tests against data/cache
-examples/       Variant lists for the demo (APP amyloid-beta numbering, SERPINA1 alleles)
-data/cache/     AlphaFold DB and UniProt responses for the demo proteins
-benchmark/      Accuracy benchmark on real UniProt variants (script, sampled data, results)
-scripts/        Day-1 feasibility checks
-docs/           Daily reports (dated; this README is authoritative), demo commands, screenshots
-.github/        Continuous integration (tests on Linux/macOS/Windows, weekly live API check)
+af_confidence/  工具本體（突變解析、資料來源、比對邏輯、命令列介面）
+tests/          自動化測試，離線使用 data/cache 的資料
+examples/       示範用的突變清單（APP 的 Aβ 編號、SERPINA1 的對偶基因、多蛋白質清單）
+data/cache/     示範蛋白質的 AFDB 與 UniProt 資料
+benchmark/      用真實 UniProt 突變做的準確度驗證（程式、抽樣資料、結果）
+scripts/        第一天的可行性檢查
+docs/           每日開發報告（記錄當天狀態，以本 README 為準）、示範指令稿、截圖
+.github/        自動測試設定（Linux、macOS、Windows，以及每週的線上 API 檢查）
 ```
