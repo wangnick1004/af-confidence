@@ -25,10 +25,11 @@
 7. [把結果存成 Excel 可以開的檔案](#7-把結果存成-excel-可以開的檔案)
 8. [在 AlphaFold DB 網頁上標出正確位置](#8-在-alphafold-db-網頁上標出正確位置)
 9. [在 ChimeraX 中標出正確位置](#9-在-chimerax-中標出正確位置)
-10. [在 Python 或 Jupyter／Colab 中使用](#10-在-python-或-jupytercolab-中使用)
-11. [常見問題](#11-常見問題)
-12. [這個工具不做的事](#12-這個工具不做的事)
-13. [引用與授權](#13-引用與授權)
+10. [在 PyMOL 中標出正確位置](#10-在-pymol-中標出正確位置)
+11. [在 Python 或 Jupyter／Colab 中使用](#11-在-python-或-jupytercolab-中使用)
+12. [常見問題](#12-常見問題)
+13. [這個工具不做的事](#13-這個工具不做的事)
+14. [引用與授權](#14-引用與授權)
 
 ---
 
@@ -293,7 +294,7 @@ python3 -m af_confidence APP -f examples/app_abeta_numbering.txt
 |---|---|
 | `-f 檔案`、`--file 檔案` | 讀取清單檔；可以重複使用，一次讀多個檔案 |
 | `--organism 物種代碼` | 查基因名稱時用的物種（NCBI taxonomy ID），預設 9606（人類） |
-| `--format text`／`tsv`／`json`／`afdb`／`chimerax` | 輸出格式：一般文字（預設）、TSV（可用 Excel 開啟）、JSON（給程式讀取）、AFDB 自訂標註（見[第 8 節](#8-在-alphafold-db-網頁上標出正確位置)）、ChimeraX 腳本（見[第 9 節](#9-在-chimerax-中標出正確位置)） |
+| `--format text`／`tsv`／`json`／`afdb`／`chimerax`／`pymol` | 輸出格式：一般文字（預設）、TSV（可用 Excel 開啟）、JSON（給程式讀取）、AFDB 自訂標註（見[第 8 節](#8-在-alphafold-db-網頁上標出正確位置)）、ChimeraX 腳本（見[第 9 節](#9-在-chimerax-中標出正確位置)）、PyMOL 腳本（見[第 10 節](#10-在-pymol-中標出正確位置)） |
 | `--cache 資料夾` | 下載資料的存放位置，預設 `~/.cache/af-confidence` |
 | `--offline` | 不連網，只用已下載的資料 |
 | `--version`、`-h` | 顯示版本、顯示說明 |
@@ -467,7 +468,42 @@ python3 -m af_confidence -f my_variants.txt --format chimerax > markers.cxc
 
 ---
 
-### 10. 在 Python 或 Jupyter／Colab 中使用
+### 10. 在 PyMOL 中標出正確位置
+
+[PyMOL](https://pymol.org/) 是另一個常用的結構檢視軟體。工具可以產生 PyMOL 腳本（`.pml` 檔），執行後會下載正確的 AlphaFold 模型、依 pLDDT 上色，並把檢查過的位置標出來：
+
+```bash
+python3 -m af_confidence -f my_variants.txt --format pymol > markers.pml
+```
+
+在 PyMOL 中執行：選單「File」→「Run Script...」選擇 `markers.pml`，或在 PyMOL 的指令列輸入 `@` 加上檔案的完整路徑。
+
+![PyMOL 執行 examples/mixed_proteins.txt 產生的腳本](docs/images/pymol_example.png)
+
+*上圖是用開源版 PyMOL 3.2 實際執行 `examples/mixed_proteins.txt` 產生的腳本所渲染的畫面：卡通圖依 pLDDT 上色（深藍為非常高、橘色為非常低），標記的位置以側鏈與小球顯示並加上標籤。R72P 落在橘色的低信心區域。*
+
+腳本會做這些事：
+
+1. **先刪除 PyMOL 中所有已載入的物件**（`delete all`），請先存好正在進行的工作
+2. 從 AlphaFold DB 下載工具比對時用的同一個模型檔（PyMOL 的 `fetch` 不支援 AlphaFold DB 的編號，所以直接用模型檔網址）
+3. 依 AlphaFold DB 的官方配色為卡通圖上色：深藍 > 90、淺藍 70～90、黃 50～70、橘 < 50
+4. 在每個檢查過的位置顯示側鏈、上色並加上標籤；只替側鏈上色，卡通圖保留 pLDDT 的顏色
+5. 有多個模型時分格顯示（grid mode），最後調整視角
+
+| 側鏈顏色 | 意思 |
+|---|---|
+| green（綠） | 照原寫法就對得上 |
+| magenta（洋紅） | 依 strong 證據校正後的位置 |
+| violet（紫羅蘭） | 依 medium 證據校正後的位置 |
+| white（白） | 可能是巧合（ambiguous），標籤結尾加上 `?` |
+
+每一組位置也會建立具名的選取範圍（例如 `afc_m1_fixed_strong`），會出現在 PyMOL 右側的物件清單中。
+
+這個腳本**已在開源版 PyMOL 3.2 中實際執行測試**：自動測試會在 PyMOL 中執行腳本，檢查每個模型都已載入、每個選取範圍都有選到原子、側鏈顏色正確、卡通圖保留 pLDDT 顏色、標籤數量正確。PyMOL 需要連網才能下載模型。
+
+---
+
+### 11. 在 Python 或 Jupyter／Colab 中使用
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/wangnick1004/af-confidence/blob/main/examples/colab_quickstart.ipynb)
 
@@ -494,6 +530,8 @@ df = afc.to_dataframe(reports)             # pandas DataFrame（需要 pandas）
 print(afc.afdb_tracks(reports))            # 貼進 AlphaFold DB（第 8 節）
 with open("markers.cxc", "w") as fh:       # 在 ChimeraX 中開啟（第 9 節）
     fh.write(afc.chimerax_script(reports))
+with open("markers.pml", "w") as fh:       # 在 PyMOL 中執行（第 10 節）
+    fh.write(afc.pymol_script(reports))
 ```
 
 | 函式 | 用途 |
@@ -503,13 +541,13 @@ with open("markers.cxc", "w") as fh:       # 在 ChimeraX 中開啟（第 9 節�
 | `to_text(結果)` | 和命令列相同的文字報告 |
 | `to_records(結果)` | 每個突變一列：狀態、模型上的胺基酸、pLDDT，以及最佳建議的位置（`best_position`）、種類、強度、pLDDT。加上 `detail="suggestion"` 則每個建議一列 |
 | `to_dataframe(結果)` | 同上，回傳 pandas DataFrame |
-| `afdb_tracks(結果)`、`chimerax_script(結果)` | 第 8、9 節的兩種輸出 |
+| `afdb_tracks(結果)`、`chimerax_script(結果)`、`pymol_script(結果)` | 第 8、9、10 節的三種輸出 |
 
 每個函式都可以加上 `cache=`、`offline=True`、`organism=` 等設定，用法和命令列選項相同。蛋白質查不到時不會中斷，而是記錄在結果的 `error` 欄位；清單格式錯誤則會引發 `InputError`。
 
 ---
 
-### 11. 常見問題
+### 12. 常見問題
 
 **Q：出現 `command not found: python3` 或「找不到指令」**
 A：電腦沒有安裝 Python，或 Windows 使用者沒有改用 `py`。見[第 2 節](#2-準備確認電腦有-python)。
@@ -546,7 +584,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ---
 
-### 12. 這個工具不做的事
+### 13. 這個工具不做的事
 
 - **不判斷突變是否致病。** AFDB 的模型是正常（野生型）蛋白質，看不出突變後的結構變化。
 - **不重新評估結構的可信度。** pLDDT 照 AFDB 原值顯示。
@@ -558,7 +596,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ---
 
-### 13. 引用與授權
+### 14. 引用與授權
 
 - 結構預測資料來自 AlphaFold Protein Structure Database（EMBL-EBI 與 Google DeepMind），採用 CC-BY-4.0 授權。使用結果時，請引用 AlphaFold 與 AlphaFold DB 的論文。
 - 加工標註與序列資料來自 UniProt。
@@ -608,7 +646,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
    - 無標註的共同位移：搜尋所有可能位移，只在恰好一個位移成立、且期望巧合次數 2L·∏*pᵢ* < 0.05 時回報（L 為序列長度），為 **strong**。
    - 異構體：同一個異構體說明了整批（≥ 2 個）對不上的突變時為 **strong**，否則為 **weak**；寫反（`swapped`）為 **medium**；前後 3 格內（`nearby`）為 **weak**，只在沒有更強的解釋時顯示。
    - 有 strong 或 medium 的解釋時，隱藏 weak 的雜訊。
-7. **輸出**：文字、TSV（可用 Excel 開啟）、JSON、AFDB 自訂標註（可直接貼進 AFDB 模型頁），或 ChimeraX 腳本（開啟正確模型並標出位置）；每個建議附上對應的 AFDB 模型與該位置的 pLDDT（照 AFDB 原值）。
+7. **輸出**：文字、TSV（可用 Excel 開啟）、JSON、AFDB 自訂標註（可直接貼進 AFDB 模型頁），或 ChimeraX／PyMOL 腳本（開啟正確模型並標出位置）；每個建議附上對應的 AFDB 模型與該位置的 pLDDT（照 AFDB 原值）。
 
 ### 實作規劃與歷程
 
@@ -622,7 +660,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 | 最終檢查 | 從全新 clone 驗證整個 repo | 修正 AFDB 查無模型時未快取（離線結果不一致）、驗證抽樣在不同執行間不穩定兩個問題 |
 | 開源配備 | 自動測試、版本發布、測試補強 | GitHub Actions（3 種作業系統 × 5 個 Python 版本，加每週的線上 API 檢查）、CHANGELOG、貢獻指南、v0.1.0 版本標籤；補測試讓覆蓋率從 95% 提高到 99%；修正非 ASCII 字元在 Windows 終端機可能造成當機的問題 |
 
-| 工作流程整合 | 把工具接進研究者使用 AlphaFold 的日常流程 | 調查研究者的日常工作流程（見下一節）；完成三項整合：AFDB 自訂標註（`--format afdb`），讓校正後的位置直接顯示在 AFDB 官方的結構檢視器上；ChimeraX 腳本（`--format chimerax`），開啟正確的模型並標出位置（指令依官方使用手冊撰寫）；Python 函式庫介面與 Colab 範例筆記本，讓 Jupyter 使用者能把結果直接放進 pandas 分析 |
+| 工作流程整合 | 把工具接進研究者使用 AlphaFold 的日常流程 | 調查研究者的日常工作流程（見下一節）；完成四項整合：AFDB 自訂標註（`--format afdb`），讓校正後的位置直接顯示在 AFDB 官方的結構檢視器上；ChimeraX 腳本（`--format chimerax`），開啟正確的模型並標出位置（指令依官方使用手冊撰寫）；Python 函式庫介面與 Colab 範例筆記本，讓 Jupyter 使用者能把結果直接放進 pandas 分析；PyMOL 腳本，並在開源版 PyMOL 中實際執行測試 |
 
 `docs/` 中的每日報告保留當天的狀態與查證紀錄，有些說法後來已修正；**以本 README 為準**。
 
@@ -634,19 +672,19 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 |---|---|---|
 | AFDB 自訂標註（`--format afdb`） | 在 AFDB 網站查詢瀏覽 | ✅ 完成（見[第 8 節](#8-在-alphafold-db-網頁上標出正確位置)） |
 | ChimeraX 腳本（`--format chimerax`） | 下載模型、視覺化 | ✅ 完成（見[第 9 節](#9-在-chimerax-中標出正確位置)；尚待在實際 ChimeraX 中測試） |
-| Python 函式庫介面與 Colab 範例 | 批次處理 | ✅ 完成（見[第 10 節](#10-在-python-或-jupytercolab-中使用)；筆記本每週由 CI 實際執行一次） |
-| PyMOL 腳本 | 下載模型、視覺化 | 規劃中 |
+| Python 函式庫介面與 Colab 範例 | 批次處理 | ✅ 完成（見[第 10 節](#11-在-python-或-jupytercolab-中使用)；筆記本每週由 CI 實際執行一次） |
+| PyMOL 腳本（`--format pymol`） | 下載模型、視覺化 | ✅ 完成（見[第 10 節](#10-在-pymol-中標出正確位置)；在開源版 PyMOL 中實際執行測試） |
 | MCP 伺服器 | AI 助理 | 規劃中 |
 
 ### 驗證方式
 
-- **自動化測試**：154 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，並實際執行一次 Colab 範例筆記本，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- **自動化測試**：164 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；PyMOL 腳本另由一個獨立的 job 在開源版 PyMOL 中實際執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，並實際執行一次 Colab 範例筆記本和 PyMOL 腳本，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 - **真實資料驗證**：`benchmark/`，固定亂數種子、可重現。
 - **人工核對**：示範案例的 pLDDT 與序列，對照 AFDB 與 UniProt 網站；ProtVar 行為以實際操作截圖記錄。
 
 ### 已知限制與未來規劃
 
-限制見 [這個工具不做的事](#12-這個工具不做的事)。未來可能的方向（尚未排程）：
+限制見 [這個工具不做的事](#13-這個工具不做的事)。未來可能的方向（尚未排程）：
 
 - 上一節列出的其他工作流程整合
 - 網頁介面（靜態頁面，放在 GitHub Pages），讓不用終端機的人也能貼上清單使用
@@ -680,7 +718,7 @@ tests/          自動化測試，離線使用 data/cache 的資料
 examples/       示範用的突變清單（APP 的 Aβ 編號、SERPINA1 的對偶基因、多蛋白質清單）與 Colab 範例筆記本
 data/cache/     示範蛋白質的 AFDB 與 UniProt 資料
 benchmark/      用真實 UniProt 突變做的準確度驗證（程式、抽樣資料、結果）
-scripts/        第一天的可行性檢查、執行範例筆記本的檢查腳本
+scripts/        第一天的可行性檢查、執行範例筆記本與 PyMOL 腳本的檢查程式
 docs/           每日開發報告（記錄當天狀態，以本 README 為準）、示範指令稿、截圖
 .github/        自動測試設定（Linux、macOS、Windows，以及每週的線上 API 檢查）
 ```

@@ -11,6 +11,10 @@
 - 新輸出格式 `--format chimerax`：產生 ChimeraX 腳本（`.cxc`），以帶版本號的模型編號開啟工具比對用的
   同一個 AlphaFold DB 模型，依四種軌跡為檢查過的位置顯示側鏈、上色、加標籤，並建立具名的選取範圍；
   多個模型時並排顯示。指令依 ChimeraX 官方使用手冊撰寫，尚未在實際的 ChimeraX 中執行過。
+- 新輸出格式 `--format pymol`：產生 PyMOL 腳本（`.pml`），從 AlphaFold DB 提供的模型檔網址載入工具比對用的
+  同一個模型，依 AlphaFold DB 官方配色為 pLDDT 上色，標記檢查過的位置（側鏈、小球、標籤、具名選取範圍），
+  多個模型時分格顯示。已在開源版 PyMOL 3.2 中實際執行測試（`scripts/check_pymol.py`），並加入 CI；
+  Python 介面新增 `pymol_script`。
 - Python 函式庫介面：`import af_confidence as afc` 後可用 `check`、`check_list`（接受對照表、配對清單或
   清單檔）、`to_text`、`to_records`、`to_dataframe`（需要 pandas）、`afdb_tracks`、`chimerax_script`；
   核心仍不需要任何第三方套件。

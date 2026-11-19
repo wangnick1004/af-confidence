@@ -109,6 +109,7 @@ def test_integration_outputs_accept_one_report():
     rep = afc.check("HBB", "E6V", **C)
     assert "Residues or ranges:  7" in afc.afdb_tracks(rep)
     assert "alphafold fetch AF-P68871-F1-v6" in afc.chimerax_script(rep)
+    assert "load https://alphafold.ebi.ac.uk/files/AF-P68871-F1-model_v6.cif, AF_P68871_F1" in afc.pymol_script(rep)
 
 
 def test_to_text_matches_command_line(capsys):

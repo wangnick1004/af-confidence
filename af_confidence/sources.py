@@ -55,6 +55,7 @@ class Model:
     start: int             # first residue number covered by the model (usually 1)
     confidence_url: str
     uniprot_sequence_matches: bool = True
+    cif_url: str = ""          # model coordinates (mmCIF) as given by the AlphaFold DB API
     plddt: dict[int, float] | None = None
 
 
@@ -198,6 +199,7 @@ class Client:
                 sequence=e["sequence"],
                 start=int(e.get("sequenceStart", 1)),
                 confidence_url=e["plddtDocUrl"],
+                cif_url=e.get("cifUrl", ""),
                 uniprot_sequence_matches=e.get("uniprotSequence", e["sequence"]) == e["sequence"],
             ))
         target = [m for m in models if m.accession == accession]

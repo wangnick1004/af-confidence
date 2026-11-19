@@ -47,6 +47,19 @@ jobs:
           test "$code" -eq 1
           grep -q "E7V matches" out.txt
 
+  pymol:
+    name: PyMOL script runs in open-source PyMOL
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install . pytest pymol-open-source-whl
+      - name: Run the generated script in PyMOL (cached models, no network)
+        run: python -m pytest -q tests/test_pymol.py -k runs_in_pymol -rs
+
   live:
     name: Live APIs (AlphaFold DB, UniProt)
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -70,6 +83,14 @@ jobs:
           grep -q "E7V matches" out.txt
           grep -q "E366K matches" out.txt
           grep -q "no AlphaFold DB model" out.txt
+      - name: PyMOL script runs with models downloaded from AlphaFold DB
+        shell: bash
+        run: |
+          python -m pip install pymol-open-source-whl
+          set +e
+          af-confidence -f examples/mixed_proteins.txt --format pymol --cache "$RUNNER_TEMP/live" > markers.pml
+          set -e
+          python scripts/check_pymol.py markers.pml
       - name: Colab notebook runs top to bottom (this commit's code, live data)
         run: |
           python -m pip install nbclient nbformat ipykernel pandas

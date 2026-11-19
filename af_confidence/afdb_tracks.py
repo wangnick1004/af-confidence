@@ -39,6 +39,7 @@ class EntryTracks:
     notes: list[str] = field(default_factory=list)                    # "E6V -> 7 (...)"
     start: int = 1                                                    # model numbering offset
     version: int = 0                                                  # AlphaFold DB version
+    cif_url: str = ""                                                 # model coordinates
     labels: dict[int, list[str]] = field(default_factory=dict)        # residue -> variants
 
     def model_number(self, residue: int) -> int:
@@ -88,7 +89,8 @@ def build_tracks(rep: ProteinReport) -> ProteinTracks:
         if e is None:
             e = entries[entry_id] = EntryTracks(entry_id, acc, AFDB_ENTRY_URL.format(entry=entry_id),
                                                 length, start=start,
-                                                version=rep.versions.get(entry_id, 0))
+                                                version=rep.versions.get(entry_id, 0),
+                                                cif_url=rep.files.get(entry_id, ""))
         e.tracks.setdefault(track, []).append(residue)
         if label and label not in e.labels.setdefault(residue, []):
             e.labels[residue].append(label)

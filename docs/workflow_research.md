@@ -34,7 +34,7 @@
 | 1 | **輸出 AFDB 自訂標註**：印出可直接貼進 AFDB 網頁的校正後位置 | 1 | ✅ 完成（`--format afdb`，見 README 第 8 節） |
 | 2 | 輸出 ChimeraX 腳本（`.cxc`）：開啟正確模型並標記校正後位置 | 2 | ✅ 完成（`--format chimerax`，見 README 第 9 節）；指令依官方使用手冊撰寫，尚待在 Mac 上用 ChimeraX 實測 |
 | 3 | Python 函式庫介面與 Colab 範例 | 3 | ✅ 完成（見 README 第 10 節；筆記本每週由 CI 實際執行） |
-| 4 | 輸出 PyMOL 腳本（`.pml`） | 2 | 規劃中 |
+| 4 | 輸出 PyMOL 腳本（`.pml`） | 2 | ✅ 完成（`--format pymol`，見 README 第 10 節）；在開源版 PyMOL 中實際執行測試 |
 | 5 | MCP 伺服器：讓 AI 助理先檢查編號 | 5 | 規劃中 |
 
 不建議：Ensembl VEP 外掛（VEP 處理基因體座標，輸入對不上）、Galaxy／nf-core（與使用情境距離較遠）。

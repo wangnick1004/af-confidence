@@ -32,4 +32,11 @@ python3 -m pytest
   python3 scripts/check_notebook.py examples/colab_quickstart.ipynb --local .
   ```
 
+- 修改 PyMOL 腳本輸出後，請在開源版 PyMOL 中實際執行：
+
+  ```bash
+  python3 -m pip install pymol-open-source-whl pytest
+  python3 -m pytest tests/test_pymol.py
+  ```
+
 - 維持工具的範圍：只做編號對應，不重新判讀 pLDDT，也不預測突變的影響。

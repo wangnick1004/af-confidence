@@ -12,6 +12,7 @@
     afc.to_dataframe(reports)      # the same as a pandas DataFrame (needs pandas)
     print(afc.afdb_tracks(reports))                         # paste into AlphaFold DB
     open("markers.cxc", "w").write(afc.chimerax_script(reports))   # open in ChimeraX
+    open("markers.pml", "w").write(afc.pymol_script(reports))      # run in PyMOL
 
 Every function takes the same optional settings as the command line: ``cache`` (directory),
 ``offline`` (cached files only) and ``organism`` (NCBI taxonomy ID for gene names), or a
@@ -30,6 +31,7 @@ from .afdb_tracks import render_afdb
 from .chimerax import render_chimerax
 from .inputs import group, parse_lines
 from .mapper import ProteinReport, Result, Suggestion, check_protein
+from .pymol import render_pymol
 from .sources import HUMAN, Client
 
 Variants = Union[str, Iterable[str]]
@@ -164,3 +166,8 @@ def afdb_tracks(reports: ProteinReport | Iterable[ProteinReport]) -> str:
 def chimerax_script(reports: ProteinReport | Iterable[ProteinReport]) -> str:
     """A ChimeraX command script (same as ``--format chimerax``); save it as ``.cxc``."""
     return render_chimerax(_as_list(reports))
+
+
+def pymol_script(reports: ProteinReport | Iterable[ProteinReport]) -> str:
+    """A PyMOL script (same as ``--format pymol``); save it as ``.pml``."""
+    return render_pymol(_as_list(reports))
