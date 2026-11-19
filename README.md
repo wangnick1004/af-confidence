@@ -4,6 +4,8 @@
 
 把文獻中的突變位置，正確對應到 AFDB 模型上
 
+**中文使用說明（不需要程式背景）：[使用說明.md](使用說明.md)**
+
 Map protein-level variants written in the literature (e.g. `E6V`) onto the correct residue of the
 AlphaFold DB model, and explain numbering mismatches with evidence before anyone interprets a
 structure.
@@ -99,7 +101,6 @@ with an explicit strength of evidence.
 限制見 [What it does NOT do](#what-it-does-not-do)。未來可能的方向（尚未排程）：
 
 - 網頁介面（靜態頁面，放在 GitHub Pages），讓不用終端機的人也能貼上清單使用
-- 給非程式背景使用者的中文使用說明
 - 透過 Ensembl VEP 支援 DNA 層級寫法；模式生物與人類同源蛋白質的編號對應
 
 ## Install and run
@@ -261,6 +262,7 @@ examples/       Variant lists for the demo (APP amyloid-beta numbering, SERPINA1
 data/cache/     AlphaFold DB and UniProt responses for the demo proteins
 benchmark/      Accuracy benchmark on real UniProt variants (script, sampled data, results)
 scripts/        Day-1 feasibility checks
+使用說明.md      Step-by-step user guide in Chinese for non-programmers
 docs/           Daily reports (dated; this README is authoritative), demo commands, screenshots
 .github/        Continuous integration (tests on Linux/macOS/Windows, weekly live API check)
 ```

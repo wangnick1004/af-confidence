@@ -2,6 +2,13 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Step-by-step user guide in Chinese for users without a programming background
+  ([使用說明.md](使用說明.md)): installing Python, downloading without git, writing variant
+  lists, reading the output and evidence levels, exporting to Excel, troubleshooting.
+
 ## [0.1.0] - 2026-11-19
 
 First release: a command-line tool that maps protein-level variants written in the literature
