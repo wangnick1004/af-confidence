@@ -4,16 +4,8 @@
 
 把文獻中的突變位置，正確對應到 AFDB 模型上
 
-**中文使用說明（不需要程式背景）：[跳到中文使用說明](#中文使用說明)**
-
-Map protein-level variants written in the literature (e.g. `E6V`) onto the correct residue of the
-AlphaFold DB model, and explain numbering mismatches with evidence before anyone interprets a
-structure.
-
-> Status: v0.1.0 released ([changelog](CHANGELOG.md)); 104 offline tests, run on Linux, macOS and
-> Windows with Python 3.9–3.13, plus a weekly check against the live APIs.
-> Accuracy measured on 735 real UniProt variants: see [Benchmark](#benchmark).
-> Goals, method and development plan (in Chinese): see [專案目標、方法與實作規劃](#專案目標方法與實作規劃).
+> 目前版本 v0.1.0（[更新紀錄](CHANGELOG.md)）。準確度驗證見 [Benchmark](#benchmark)；專案目標與方法見
+> [專案目標、方法與實作規劃](#專案目標方法與實作規劃)。
 
 ## 中文使用說明
 
@@ -290,6 +282,21 @@ python3 -m af_confidence APP -f examples/app_abeta_numbering.txt
 
 工具資料夾的 `examples/` 裡有三份範例清單可以參考。
 
+清單中同一個蛋白質（不論寫基因名稱還是 UniProt 編號）的突變會合併在一起檢查；某個蛋白質查不到時，只會回報它的錯誤，其他照常輸出。
+
+#### 所有選項
+
+| 選項 | 說明 |
+|---|---|
+| `-f 檔案`、`--file 檔案` | 讀取清單檔；可以重複使用，一次讀多個檔案 |
+| `--organism 物種代碼` | 查基因名稱時用的物種（NCBI taxonomy ID），預設 9606（人類） |
+| `--format text`／`tsv`／`json` | 輸出格式：一般文字（預設）、TSV（可用 Excel 開啟）、JSON（給程式讀取） |
+| `--cache 資料夾` | 下載資料的存放位置，預設 `~/.cache/af-confidence` |
+| `--offline` | 不連網，只用已下載的資料 |
+| `--version`、`-h` | 顯示版本、顯示說明 |
+
+工具連網失敗時會自動重試 3 次。執行結束時的結束代碼（寫腳本時才會用到）：全部對得上為 0，有任何對不上或可能是巧合為 1，有蛋白質查不到或網路錯誤為 2。
+
 ---
 
 ### 6. 怎麼讀結果
@@ -426,30 +433,11 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 - 結構預測資料來自 AlphaFold Protein Structure Database（EMBL-EBI 與 Google DeepMind），採用 CC-BY-4.0 授權。使用結果時，請引用 AlphaFold 與 AlphaFold DB 的論文。
 - 加工標註與序列資料來自 UniProt。
-- 本工具採用 MIT 授權。
+- 本工具採用 MIT 授權（見 `LICENSE`）。
+- 部分程式碼與文件由 Claude（Anthropic）協助撰寫。
 - 有問題或建議，歡迎到 <https://github.com/wangnick1004/af-confidence/issues> 回報；最有幫助的是附上「工具給錯答案的突變清單」與該編號的出處。
 
 ---
-
-## Why
-
-The same variant is often numbered differently in different sources:
-
-| Variant as usually written | AlphaFold DB model residue at that number | Actual position | Reason (UniProt annotation) |
-|---|---|---|---|
-| HBB `E6V` (sickle-cell, HbS) | P | E7 | initiator Met removed |
-| SERPINA1 `E342K` (Z allele) | L | E366 | signal peptide 1–24 |
-| APP `E22G` (amyloid-beta numbering) | T | E693 | amyloid-beta starts at 672 |
-| APP `D23N` (Iowa, amyloid-beta numbering) | **D (matches by coincidence)** | D694 | amyloid-beta starts at 672 |
-
-AlphaFold DB itself shows whatever residue sits at the number you look up. Full annotation tools
-do check the reference residue: for `P68871 E6V`, EBI ProtVar (UI 2.0, checked 2026-11-19) warns that
-Glu does not match Pro at position 6, then **continues with Pro6** and does not point to Glu7
-(screenshot: `docs/images/protvar_P68871_E6V.webp`). And when the residue matches by coincidence,
-as for `D23N`, no single-variant check can notice.
-
-This tool adds the missing step: *why* it does not match and *where* the residue probably is,
-with an explicit strength of evidence.
 
 ## 專案目標、方法與實作規劃
 
@@ -457,7 +445,7 @@ with an explicit strength of evidence.
 
 同一個蛋白質突變，在不同來源中常用不同的編號系統：教科書與早期文獻常不算起始甲硫胺酸（HbS 寫成 E6V），臨床文獻常從成熟蛋白質算起（α1-抗胰蛋白酶 Z 型寫成 E342K），阿茲海默症文獻用 Aβ 自己的編號（E22G），UniProt 也可能在更新時改變標準序列。AlphaFold DB（AFDB）的模型則使用 UniProt 的標準序列編號。
 
-使用者拿文獻中的編號到 AFDB 上找位置時，網站只會顯示該編號上的胺基酸，**不會檢查、也不會警告**。ProtVar 這類完整工具會發現參考胺基酸不符，但不會指出正確位置。更危險的是「碰巧對上」：編號錯了，但錯的位置剛好是同一種胺基酸（例如 APP 的 D23N），任何單一突變的檢查都無法察覺。
+使用者拿文獻中的編號到 AFDB 上找位置時，網站只會顯示該編號上的胺基酸，**不會檢查、也不會警告**。ProtVar 這類完整工具會發現參考胺基酸不符，但不會指出正確位置：輸入 `P68871 E6V` 時，ProtVar（UI 2.0，2026-11-19 測試）警告 Glu 與第 6 個位置的 Pro 不符，接著就改用 Pro6 繼續分析（截圖：`docs/images/protvar_P68871_E6V.webp`）。更危險的是「碰巧對上」：編號錯了，但錯的位置剛好是同一種胺基酸（例如 APP 的 D23N），任何單一突變的檢查都無法察覺。
 
 ### 目標
 
@@ -478,7 +466,7 @@ with an explicit strength of evidence.
 1. **解析突變寫法**：`E6V`、`p.Glu6Val` 等；DNA 層級寫法明確拒絕。清單檔中每行可以用不同蛋白質開頭。
 2. **解析蛋白質**：UniProt 編號、異構體編號（`P04637-2`）或基因名稱。基因名稱透過 UniProt 查詢，只採用已審核（reviewed）的條目，名稱有歧義時列出所有候選。
 3. **取得資料**：AFDB API 取得模型序列、異構體模型與 pLDDT；UniProt 取得加工標註（起始甲硫胺酸、訊號胜肽、前胜肽、轉運胜肽、成熟鏈與片段）與**現行序列**。資料快取在本機，網路暫時失敗時重試。
-4. **序列比對**：參考胺基酸是否等於模型在該位置的胺基酸。同時比對 AFDB 模型序列與現行 UniProt 序列；兩者不同時（AFDB 落後 UniProt 更新），算出兩條序列的位移量，把 UniProt 標註換算到模型位置上，並指出 AFDB 中序列與 UniProt 相同的模型。
+4. **序列比對**：參考胺基酸是否等於模型在該位置的胺基酸。同時比對 AFDB 模型序列與現行 UniProt 序列；兩者不同時（AFDB 落後 UniProt 更新），算出兩條序列的位移量，把 UniProt 標註換算到模型位置上，並指出 AFDB 中序列與 UniProt 相同的模型。輸入異構體編號時，UniProt 只在標準條目上標註加工區段，所以只有在異構體的 N 端與標準序列完全相同時，才沿用 N 端的標註（起始甲硫胺酸、訊號胜肽、轉運胜肽、前胜肽）。
 5. **找候選解釋**（都是精確的序列比對）：
    - `annotated_offset`：依 UniProt 加工標註或序列更新的位移，對得上
    - `consistent_offset`：沒有標註依據，但同一個位移讓整批對不上的突變全部對上
@@ -489,6 +477,7 @@ with an explicit strength of evidence.
 6. **證據分級**：任一胺基酸在隨機位置出現的機率約 1/20，所以分級依「巧合的機率」而定。設 *pᵢ* 為胺基酸 *rᵢ* 在模型序列中的頻率：
    - 標註位移 *k* 說明了 *n* 個對不上的突變中的 *s* 個：巧合機率為二項分布尾端 P(X ≥ *s*)，X ~ Bin(*n*, *p̄*)。*s* ≥ 2 且機率 < 0.05 / *m*（*m* 為嘗試的標註位移數，Bonferroni 校正）時為 **strong**；只說明一個突變、而且是主要加工標註時為 **medium**；其他為 **weak**。
    - 無標註的共同位移：搜尋所有可能位移，只在恰好一個位移成立、且期望巧合次數 2L·∏*pᵢ* < 0.05 時回報（L 為序列長度），為 **strong**。
+   - 異構體：同一個異構體說明了整批（≥ 2 個）對不上的突變時為 **strong**，否則為 **weak**；寫反（`swapped`）為 **medium**；前後 3 格內（`nearby`）為 **weak**，只在沒有更強的解釋時顯示。
    - 有 strong 或 medium 的解釋時，隱藏 weak 的雜訊。
 7. **輸出**：文字、TSV（可用 Excel 開啟）或 JSON；每個建議附上對應的 AFDB 模型與該位置的 pLDDT（照 AFDB 原值）。
 
@@ -508,125 +497,16 @@ with an explicit strength of evidence.
 
 ### 驗證方式
 
-- **自動化測試**：104 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，API 格式改變時會及早發現。
+- **自動化測試**：104 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 - **真實資料驗證**：`benchmark/`，固定亂數種子、可重現。
 - **人工核對**：示範案例的 pLDDT 與序列，對照 AFDB 與 UniProt 網站；ProtVar 行為以實際操作截圖記錄。
 
 ### 已知限制與未來規劃
 
-限制見 [What it does NOT do](#what-it-does-not-do)。未來可能的方向（尚未排程）：
+限制見 [這個工具不做的事](#9-這個工具不做的事)。未來可能的方向（尚未排程）：
 
 - 網頁介面（靜態頁面，放在 GitHub Pages），讓不用終端機的人也能貼上清單使用
 - 透過 Ensembl VEP 支援 DNA 層級寫法；模式生物與人類同源蛋白質的編號對應
-
-## Install and run
-
-Requires Python 3.9+; no third-party packages. On macOS and most Linux systems the command is
-`python3` (not `python`); on Windows it is usually `py`.
-
-```bash
-git clone https://github.com/wangnick1004/af-confidence
-cd af-confidence
-python3 -m pip install .
-af-confidence P68871 E6V
-```
-
-Without installing: `python3 -m af_confidence P68871 E6V`.
-
-```
-P68871  (AlphaFold DB model AF-P68871-F1)
-XX E6V: model has P at 6, not E
-     -> [medium] annotated_offset: +1: E7V matches; UniProt: initiator Met removed; mature chain
-        'Hemoglobin subunit beta' starts at 2 (explains 1/1 mismatched input) [pLDDT 96.56]
-```
-
-### Input
-
-The first word is the protein, the rest are variants:
-
-| Protein as | Example |
-|---|---|
-| UniProt accession | `af-confidence P68871 E6V` |
-| Gene name (human by default) | `af-confidence HBB E6V` |
-| Isoform accession | `af-confidence P04637-2 R175H` |
-| Gene name in another organism | `af-confidence Trp53 R172H --organism 10090` |
-
-Variants: `E6V`, `p.E6V`, `Glu6Val`, `p.Glu6Val`, `p.(Glu6Val)`, nonsense `R213*` / `p.Arg213Ter`;
-separate them with spaces or commas.
-
-A list from one or more papers: `-f FILE` (can be repeated). One line per protein, `#` starts a
-comment:
-
-```
-# variants collected from several papers
-HBB      E6V            # sickle cell, legacy numbering
-SERPINA1 E342K, E264V   # Z and S alleles
-P04637   R175H R72P
-```
-
-```bash
-af-confidence -f my_variants.txt
-```
-
-Lines without a protein use the one given on the command line, e.g.
-`af-confidence APP -f examples/app_abeta_numbering.txt`. Entries for the same protein (by gene name
-or accession) are checked together, so batch evidence uses all of them. A protein that cannot be
-loaded is reported as an error without stopping the others.
-
-Some gene names look like variants (`C1S`, `F2R`, `C4A`): at the start of a line in a file they are
-read as the protein; when a protein is also given on the command line they are read as variants.
-Use the UniProt accession if in doubt.
-
-### Options and output
-
-| Option | Meaning |
-|---|---|
-| `-f`, `--file FILE` | read `[PROTEIN] VARIANT ...` lines (repeatable) |
-| `--organism TAXID` | NCBI taxonomy ID for gene-name lookup (default 9606, human; mouse 10090) |
-| `--format text\|tsv\|json` | `tsv` opens in Excel; one row per suggestion |
-| `--cache DIR` | cache directory (default `~/.cache/af-confidence`) |
-| `--offline` | use cached files only |
-
-The demo proteins are cached in `data/cache`, so `--cache data/cache --offline` works without network.
-Network requests are retried 3 times with back-off; cache files are written atomically and a
-corrupt cache file is fetched again.
-
-Exit code: 0 if every variant matches unambiguously, 1 otherwise, 2 if a protein could not be
-loaded or a network error occurred.
-
-Run the tests: `python3 -m pip install pytest && python3 -m pytest`. Contributions: see
-[CONTRIBUTING.md](CONTRIBUTING.md).
-
-## What it checks
-
-Status per variant: `OK` match, `!?` ambiguous match, `XX` mismatch or out of range, `??` unparseable.
-
-For a mismatch, explanations that are exact sequence comparisons, each labelled with how likely it
-is to be a coincidence (any single residue matches a random position about 1 time in 20):
-
-| Kind | Meaning | Strength |
-|---|---|---|
-| `annotated_offset` | shifting by a UniProt processing feature (initiator Met, signal/transit peptide, propeptide, mature chain, other fragments), or by a UniProt sequence update the AlphaFold DB model has not caught up with, gives a match | **strong** if it explains ≥2 inputs and that many coincidences has probability < 0.05 / number of shifts tried; **medium** if a primary feature explains this one input and no other shift is strong; **weak** otherwise |
-| `consistent_offset` | one unannotated shift makes *all* mismatched inputs match; expected number of such shifts by chance < 0.05 | **strong** (needs ≥2 inputs) |
-| `isoform` | matches at the same number in an AlphaFold DB isoform model | **strong** if one isoform explains every mismatched input (≥2), else **weak** |
-| `swapped` | the model already has the alternate residue | **medium** |
-| `nearby` | the residue is within ±3 positions | **weak**, shown only if nothing stronger applies |
-
-A variant that matches as written is flagged `ambiguous_match` when it also matches under a shift
-that strongly explains the other inputs of the same batch.
-
-Each suggestion shows the AlphaFold DB model and the pLDDT at that residue, as provided by
-AlphaFold DB (not reinterpreted).
-
-Warnings are printed when UniProt annotations could not be loaded (offsets not checked) or when
-the AlphaFold DB model was built on an older UniProt sequence than the current one. In that case
-the tool aligns the two sequences: if one is a stretch of the other (e.g. UniProt moved the
-canonical start codon), UniProt annotations are converted to model positions and the shift is
-offered as an explanation; otherwise UniProt annotations are not used.
-
-For an isoform accession, UniProt annotates processing on the canonical entry only; N-terminal
-features (initiator Met, signal/transit peptide, propeptide) are used for the isoform when its
-N-terminus is identical over that stretch.
 
 ## Benchmark
 
@@ -659,16 +539,6 @@ What the numbers mean in practice:
   off by 20 on that model. AlphaFold DB does have a model with the new sequence, filed under
   isoform 4 (AF-P43251-4-F1); the tool now points to it in its warning.
 
-## What it does NOT do
-
-- It does not judge structural confidence beyond showing AlphaFold's own pLDDT.
-- It does not predict whether a variant is pathogenic. AlphaFold DB models are wild-type
-  structures; the mutation itself is not modelled.
-- A single variant that matches by coincidence cannot be detected; give the whole list from the
-  source so batch evidence can be used.
-- No DNA/transcript notation (`c.20A>T`) or genomic coordinates: use Ensembl VEP or EBI ProtVar.
-- Model-organism numbering (e.g. mouse) is reported as a mismatch but not corrected.
-
 ## Repository layout
 
 ```
@@ -681,11 +551,3 @@ scripts/        Day-1 feasibility checks
 docs/           Daily reports (dated; this README is authoritative), demo commands, screenshots
 .github/        Continuous integration (tests on Linux/macOS/Windows, weekly live API check)
 ```
-
-## Data and licence
-
-Structure predictions come from the AlphaFold Protein Structure Database (EMBL-EBI / Google DeepMind).
-AlphaFold DB data are available under CC-BY-4.0; cite the AlphaFold and AlphaFold DB papers when
-using the output. Processing-feature annotations come from UniProt. Code licence: MIT (see `LICENSE`).
-
-Parts of the code and documentation were drafted with help from Claude (Anthropic).
