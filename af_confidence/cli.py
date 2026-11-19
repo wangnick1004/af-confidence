@@ -14,6 +14,7 @@ from dataclasses import asdict
 
 from . import __version__
 from .afdb_tracks import render_afdb
+from .chimerax import render_chimerax
 from .mapper import ProteinReport, Result, check_protein
 from .sources import HUMAN, Client, SourceError
 from .variants import VariantParseError, parse_variant
@@ -163,8 +164,9 @@ def main(argv: list[str] | None = None) -> int:
                          "comment); can be repeated")
     ap.add_argument("--organism", type=int, default=HUMAN, metavar="TAXID",
                     help="NCBI taxonomy ID used to look up gene names (default: 9606, human)")
-    ap.add_argument("--format", choices=["text", "tsv", "json", "afdb"], default="text",
-                    help="afdb: tracks to paste into AlphaFold DB custom annotations")
+    ap.add_argument("--format", choices=["text", "tsv", "json", "afdb", "chimerax"], default="text",
+                    help="afdb: tracks to paste into AlphaFold DB custom annotations; "
+                         "chimerax: a .cxc script that opens the models and marks the positions")
     ap.add_argument("--cache", help="cache directory (default: ~/.cache/af-confidence)")
     ap.add_argument("--offline", action="store_true", help="use cached files only, no network")
     ap.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -204,6 +206,8 @@ def main(argv: list[str] | None = None) -> int:
         print(render_tsv(reports))
     elif args.format == "afdb":
         print(render_afdb(reports), end="")
+    elif args.format == "chimerax":
+        print(render_chimerax(reports), end="")
     else:
         print(render_text(reports))
     return exit_code(reports)

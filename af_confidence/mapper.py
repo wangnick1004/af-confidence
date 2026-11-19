@@ -170,6 +170,7 @@ class ProteinReport:
     error: str = ""                    # set when the protein itself could not be loaded
     # AlphaFold DB models of this protein: entry_id -> (first residue number, length, accession)
     models: dict[str, tuple[int, int, str]] = field(default_factory=dict)
+    versions: dict[str, int] = field(default_factory=dict)    # entry_id -> AlphaFold DB version
 
 
 def check_protein(query: str, variant_texts: list[str], client: Client | None = None) -> ProteinReport:
@@ -182,7 +183,8 @@ def check_protein(query: str, variant_texts: list[str], client: Client | None = 
     return ProteinReport(query, protein.accession, protein.canonical.entry_id,
                          _map(protein, variant_texts, client), list(protein.warnings),
                          models={m.entry_id: (m.start, len(m.sequence), m.accession)
-                                 for m in protein.models})
+                                 for m in protein.models},
+                         versions={m.entry_id: m.version for m in protein.models})
 
 
 def map_variants(query: str, variant_texts: list[str], client: Client | None = None) -> list[Result]:

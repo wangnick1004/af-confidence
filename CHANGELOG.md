@@ -8,6 +8,9 @@
 - 新輸出格式 `--format afdb`：產生可直接貼進 AlphaFold DB 模型頁「自訂標註」的軌跡名稱與位置，位置
   已換算成該模型的編號；依證據分成 OK as written、Fixed strong、Fixed medium、Ambiguous 四條軌跡，
   只有 weak 證據的突變列為未放入。每個位置字串都依 AlphaFold DB 網頁本身的格式規則驗證。
+- 新輸出格式 `--format chimerax`：產生 ChimeraX 腳本（`.cxc`），以帶版本號的模型編號開啟工具比對用的
+  同一個 AlphaFold DB 模型，依四種軌跡為檢查過的位置顯示側鏈、上色、加標籤，並建立具名的選取範圍；
+  多個模型時並排顯示。指令依 ChimeraX 官方使用手冊撰寫，尚未在實際的 ChimeraX 中執行過。
 - AlphaFold 使用者日常工作流程的調查與整合規劃（`docs/workflow_research.md`）。
 - 給非程式背景使用者的中文使用說明，放在 README 開頭：安裝 Python、四種下載方式（git、用 curl
   或 PowerShell 下載 ZIP、用 pip 從 GitHub 安裝）、建立突變清單、看懂輸出與證據強度、存成 Excel、

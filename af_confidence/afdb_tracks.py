@@ -37,6 +37,13 @@ class EntryTracks:
     length: int
     tracks: dict[str, list[int]] = field(default_factory=dict)        # track -> residues
     notes: list[str] = field(default_factory=list)                    # "E6V -> 7 (...)"
+    start: int = 1                                                    # model numbering offset
+    version: int = 0                                                  # AlphaFold DB version
+    labels: dict[int, list[str]] = field(default_factory=dict)        # residue -> variants
+
+    def model_number(self, residue: int) -> int:
+        """Residue number as written in the model file (what ChimeraX or PyMOL use)."""
+        return residue + self.start - 1
 
     def residues(self, track: str) -> str:
         return format_residues(self.tracks[track])
@@ -72,7 +79,7 @@ def build_tracks(rep: ProteinReport) -> ProteinTracks:
         return pt
     entries: dict[str, EntryTracks] = {}
 
-    def place(entry_id: str, track: str, position: int, note: str | None) -> bool:
+    def place(entry_id: str, track: str, position: int, note: str | None, label: str = "") -> bool:
         start, length, acc = rep.models.get(entry_id, (1, 0, ""))
         residue = position - start + 1            # AFDB counts residues of the model from 1
         if not 1 <= residue <= length:
@@ -80,8 +87,11 @@ def build_tracks(rep: ProteinReport) -> ProteinTracks:
         e = entries.get(entry_id)
         if e is None:
             e = entries[entry_id] = EntryTracks(entry_id, acc, AFDB_ENTRY_URL.format(entry=entry_id),
-                                                length)
+                                                length, start=start,
+                                                version=rep.versions.get(entry_id, 0))
         e.tracks.setdefault(track, []).append(residue)
+        if label and label not in e.labels.setdefault(residue, []):
+            e.labels[residue].append(label)
         if note:
             e.notes.append(note)
         return True
@@ -91,20 +101,23 @@ def build_tracks(rep: ProteinReport) -> ProteinTracks:
             pt.not_placed.append(f"{r.input}: not a supported variant notation")
             continue
         if r.status == "match":
-            place(r.entry_id, TRACK_OK, r.variant.position, f"{r.input} -> {r.variant.position} (as written)")
+            place(r.entry_id, TRACK_OK, r.variant.position, f"{r.input} -> {r.variant.position} (as written)",
+                  r.input)
             continue
         if r.status == "ambiguous_match":
             others = " or ".join(str(s.position) for s in r.suggestions)
             place(r.entry_id, TRACK_AMBIGUOUS, r.variant.position,
-                  f"{r.input} -> {r.variant.position} as written, or {others} (ambiguous_match)")
+                  f"{r.input} -> {r.variant.position} as written, or {others} (ambiguous_match)",
+                  f"{r.input}?")
             for s in r.suggestions:
-                place(s.entry_id, TRACK_AMBIGUOUS, s.position, None)
+                place(s.entry_id, TRACK_AMBIGUOUS, s.position, None, f"{r.input}?")
             continue
         # mismatch or out of range: place the best suggestions only
         strong = [s for s in r.suggestions if s.strength == "strong"]
         best = strong or [s for s in r.suggestions if s.strength == "medium"]
         track = TRACK_STRONG if strong else TRACK_MEDIUM
-        placed = [place(s.entry_id, track, s.position, f"{r.input} -> {s.position} ({s.kind}, {s.strength})")
+        placed = [place(s.entry_id, track, s.position, f"{r.input} -> {s.position} ({s.kind}, {s.strength})",
+                        r.input)
                   for s in best]
         if not any(placed):
             why = ("only weak suggestions" if r.suggestions else "no explanation found")
