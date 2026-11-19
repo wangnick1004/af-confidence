@@ -903,7 +903,7 @@ AI 回答的內容取決於模型，這裡不列出；以下是伺服器**實際
 
 ### 驗證方式
 
-- **自動化測試**：188 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；PyMOL 腳本與 MCP 伺服器另由一個獨立的 job 實際執行（在開源版 PyMOL 中執行腳本、用真正的 MCP 用戶端呼叫伺服器）；另有每週一次對真實 AFDB 與 UniProt API 的檢查，並實際執行一次 Colab 範例筆記本和 PyMOL 腳本，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- **自動化測試**：191 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；PyMOL 腳本與 MCP 伺服器另由一個獨立的 job 實際執行（在開源版 PyMOL 中執行腳本、用真正的 MCP 用戶端呼叫伺服器）；另有每週一次對真實 AFDB 與 UniProt API 的檢查，並實際執行一次 Colab 範例筆記本和 PyMOL 腳本，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 - **真實資料驗證**：`benchmark/`，固定亂數種子、可重現。
 - **文件與實際輸出一致**：「研究情境」一章中列出的每一行輸出，都由測試實際執行指令比對。
 - **人工核對**：示範案例的 pLDDT 與序列，對照 AFDB 與 UniProt 網站；ProtVar 行為以實際操作截圖記錄。

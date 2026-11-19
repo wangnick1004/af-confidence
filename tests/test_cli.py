@@ -158,3 +158,12 @@ def test_non_ascii_output_on_limited_console(tmp_path):
                           str(cache), "--offline"], capture_output=True, env=env)
     assert out.returncode == 1, out.stderr
     assert b"Hemoglobin subunit ?" in out.stdout
+
+
+def test_console_without_reconfigure(monkeypatch, capsys):
+    # some consoles / redirected streams have no reconfigure(); output must still work
+    import io
+    stream = io.StringIO()
+    monkeypatch.setattr("sys.stdout", stream)
+    assert main(["HBB", "p.Glu7Val", "--cache", CACHE, "--offline"]) == 0
+    assert "OK p.Glu7Val" in stream.getvalue()

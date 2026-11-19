@@ -51,3 +51,20 @@ def test_main_explains_missing_requirements(monkeypatch, capsys):
     monkeypatch.setitem(sys.modules, "mcp", None)
     monkeypatch.setitem(sys.modules, "mcp.server.mcpserver", None)
     assert mcp_server.main() == 1 and "pip install" in capsys.readouterr().err
+
+
+def test_errors_and_invalid_variants_in_results():
+    out = mcp_server.check_variants({"NOTAGENE123": ["A1V"], "HBB": ["E6", "E6V"]})
+    missing, hbb = out["proteins"]
+    assert "error" in missing and "variants" not in missing
+    assert hbb["variants"][0] == {"input": "E6", "status": "invalid",
+                                  "message": "'E6': unsupported notation (use e.g. E6V or p.Glu6Val)"}
+
+
+def test_build_server_registers_read_only_tools():
+    pytest.importorskip("mcp")
+    import anyio
+    server = mcp_server.build_server()
+    tools = anyio.run(server.list_tools)
+    assert {t.name for t in tools} == {"check_variants", "export_markers"}
+    assert all(t.annotations.read_only_hint for t in tools)
