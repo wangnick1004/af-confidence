@@ -13,9 +13,12 @@ dependencies = []
 
 [project.optional-dependencies]
 test = ["pytest"]
+# MCP server for AI assistants; the mcp package needs Python 3.10+
+mcp = ["mcp>=2.3,<3; python_version >= '3.10'"]
 
 [project.scripts]
 af-confidence = "af_confidence.cli:main"
+af-confidence-mcp = "af_confidence.mcp_server:main"
 
 [tool.setuptools]
 packages = ["af_confidence"]

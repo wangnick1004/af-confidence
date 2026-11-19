@@ -47,8 +47,8 @@ jobs:
           test "$code" -eq 1
           grep -q "E7V matches" out.txt
 
-  pymol:
-    name: PyMOL script runs in open-source PyMOL
+  integrations:
+    name: Optional integrations (PyMOL, MCP server)
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
@@ -56,11 +56,13 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: python -m pip install . pytest pymol-open-source-whl
-      - name: PyMOL is importable (so the test below cannot be skipped)
-        run: python -c "from pymol import cmd; print('PyMOL', cmd.get_version()[0])"
+      - run: python -m pip install ".[mcp]" pytest pymol-open-source-whl
+      - name: PyMOL and mcp are importable (so the tests below cannot be skipped)
+        run: python -c "from pymol import cmd; import mcp.server.mcpserver; print('PyMOL', cmd.get_version()[0])"
       - name: Run the generated script in PyMOL (cached models, no network)
         run: python -m pytest -q tests/test_pymol.py -k runs_in_pymol -rs
+      - name: MCP server end to end through a real MCP client (stdio)
+        run: python -m pytest -q tests/test_mcp.py -rs
 
   live:
     name: Live APIs (AlphaFold DB, UniProt)
