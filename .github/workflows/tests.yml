@@ -57,6 +57,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install . pytest pymol-open-source-whl
+      - name: PyMOL is importable (so the test below cannot be skipped)
+        run: python -c "from pymol import cmd; print('PyMOL', cmd.get_version()[0])"
       - name: Run the generated script in PyMOL (cached models, no network)
         run: python -m pytest -q tests/test_pymol.py -k runs_in_pymol -rs
 
