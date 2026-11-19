@@ -19,8 +19,8 @@ from .variants import VariantParseError, parse_variant
 
 SYMBOL = {"match": "OK ", "ambiguous_match": "!? ", "mismatch": "XX ", "out_of_range": "XX ",
           "invalid": "?? "}
-FOOTER = ("Evidence: strong = annotated or very unlikely by chance; medium = specific but single; "
-          "weak = could easily be chance.\n"
+FOOTER = ("Evidence: strong = several inputs agree and that is unlikely by chance; medium = one "
+          "input fits (right about 9 times in 10 in the benchmark); weak = could easily be chance.\n"
           "pLDDT values are shown as provided by AlphaFold DB, not reinterpreted. "
           "This tool does not predict variant effects.")
 

@@ -115,7 +115,9 @@ git pull
 python3 -m af_confidence P43251 F108V A151T P371S
 ```
 
-應該看到警告「current UniProt sequence ... differs from the AlphaFold DB model」，三個突變都建議 +20，標示為 strong。
+應該看到警告「current UniProt sequence ... differs from the AlphaFold DB model」，警告結尾建議改用 `AF-P43251-4-F1`；三個突變都有兩個 strong 建議：+20 位移，以及符合異構體 P43251-4。
+
+> **補充（使用者回報後）：** 使用者第一次執行時還是舊版程式，看到「signal peptide 1-21 … [strong]」，這正是本日修正的兩個問題。另外從輸出發現：AFDB 的 `AF-P43251-4-F1`（異構體 4，523 個胺基酸）和 UniProt 現行標準序列完全相同。工具現在會在警告中直接建議改用這個模型。
 
 2. 抽查 BTD 的序列更新：打開 <https://www.uniprot.org/uniprotkb/P43251/entry>，在「Sequence」或「History」區確認序列長度是 523、最後更新日期是 2026-01-28。再打開 <https://alphafold.ebi.ac.uk/entry/P43251>，確認模型長度是 543。
 

@@ -165,8 +165,9 @@ What the numbers mean in practice:
   (silent misses drop to < 1%). **Check whole lists, not single variants.**
 - While building the benchmark the tool found a real discrepancy: UniProt changed the canonical
   sequence of biotinidase (P43251) in 2026, 20 residues shorter at the N-terminus, while the
-  AlphaFold DB model still uses the old sequence, so all UniProt-numbered variants are off by 20
-  on the model.
+  AlphaFold DB entry for P43251 still uses the old sequence, so all UniProt-numbered variants are
+  off by 20 on that model. AlphaFold DB does have a model with the new sequence, filed under
+  isoform 4 (AF-P43251-4-F1); the tool now points to it in its warning.
 
 ## What it does NOT do
 

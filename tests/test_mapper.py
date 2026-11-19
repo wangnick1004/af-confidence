@@ -142,6 +142,8 @@ def test_uniprot_sequence_update_is_detected(client):
     p = client.protein("P43251")
     assert p.uniprot_shift == 20
     assert any("current UniProt sequence" in w for w in p.warnings)
+    # AlphaFold DB also has the new canonical sequence, filed under isoform 4
+    assert any("AF-P43251-4-F1" in w and "use it" in w for w in p.warnings)
     results = map_variants("P43251", ["F108V", "A151T", "P371S"], client)
     for r, true_pos in zip(results, [128, 171, 391]):
         assert r.status == "mismatch"

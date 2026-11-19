@@ -264,6 +264,10 @@ class Client:
             processing, uni_seq = [], ""
             warnings.append(f"UniProt processing annotations unavailable ({exc}); "
                             f"annotated offsets were not checked")
+        same = next((m for m in models[1:] if uni_seq and m.sequence == uni_seq), None)
+        use_other = (f" AlphaFold DB model {same.entry_id} ({same.accession}) has exactly the "
+                     f"current UniProt sequence: use it for current UniProt numbering"
+                     if same else "")
         if uni_seq and uni_seq != model.sequence:
             # AlphaFold DB can lag behind UniProt sequence updates. UniProt annotations are on
             # the current UniProt sequence, so they can only be used if the two can be aligned.
@@ -276,13 +280,13 @@ class Client:
                     f"the current UniProt sequence of {accession} ({len(uni_seq)} aa) differs from "
                     f"the AlphaFold DB model {model.entry_id} ({len(model.sequence)} aa): UniProt "
                     f"residue n = model residue n{shift:+d}. Variants numbered on the current "
-                    f"UniProt sequence will not match the model as written")
+                    f"UniProt sequence will not match the model as written.{use_other}")
             else:
                 processing = []
                 warnings.append(
                     f"the current UniProt sequence of {accession} differs from the AlphaFold DB "
                     f"model {model.entry_id} and cannot be aligned by a simple shift; UniProt "
-                    f"annotations were not used")
+                    f"annotations were not used.{use_other}")
         elif not model.uniprot_sequence_matches:
             warnings.append(f"the AlphaFold DB model {model.entry_id} was built on an older "
                             f"UniProt sequence; positions are checked against the model sequence")
