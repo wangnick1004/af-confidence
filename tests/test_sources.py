@@ -156,3 +156,13 @@ def test_corrupt_cache_is_refetched_online(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(sources.urllib.request, "urlopen", fake_urlopen([{"ok": 2}], calls))
     assert Client(tmp_path, retry_wait=0)._get_json("https://x.org/x", "x.json") == {"ok": 2}
+
+
+def test_no_model_is_cached(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(sources.urllib.request, "urlopen", fake_urlopen([http_error(404)], calls))
+    with pytest.raises(SourceError, match="no AlphaFold DB model"):
+        Client(tmp_path, retry_wait=0).models("Q8WZ42")
+    with pytest.raises(SourceError, match="no AlphaFold DB model"):   # offline: same answer
+        Client(tmp_path, offline=True).models("Q8WZ42")
+    assert len(calls) == 1

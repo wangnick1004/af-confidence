@@ -172,9 +172,13 @@ class Client:
 
     # -- AlphaFold DB ----------------------------------------------------
     def _entries(self, accession: str) -> list[dict]:
+        name = f"api_{accession}.json"
         try:
-            return self._get_json(AFDB_API.format(acc=accession), f"api_{accession}.json")
+            return self._get_json(AFDB_API.format(acc=accession), name)
         except NotFound:
+            # remember "no model" so offline runs behave the same and it is not asked again
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            (self.cache_dir / name).write_text("[]", encoding="utf-8")
             return []
 
     def models(self, accession: str) -> list[Model]:
