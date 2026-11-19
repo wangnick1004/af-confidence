@@ -37,6 +37,8 @@
 | 4 | 輸出 PyMOL 腳本（`.pml`） | 2 | ✅ 完成（`--format pymol`，見 README 第 10 節）；在開源版 PyMOL 中實際執行測試 |
 | 5 | MCP 伺服器：讓 AI 助理先檢查編號 | 5 | ✅ 完成（`af-confidence-mcp`，見 README 第 12 節）；以 MCP 用戶端與 Claude Code 實測 |
 
+五項整合在實際研究情境中的用法，見 README 的「研究情境：把工具放進日常工作」。
+
 不建議：Ensembl VEP 外掛（VEP 處理基因體座標，輸入對不上）、Galaxy／nf-core（與使用情境距離較遠）。
 
 ## 四、AFDB 自訂標註的規格（直接從 AFDB 前端程式碼確認）

@@ -5,6 +5,10 @@
 ## [尚未發布]
 
 ### 新增
+- README 新增「研究情境：把工具放進日常工作」：五個研究者實際會遇到的情境（讀論文查突變、整理文獻清單、
+  結構作圖、對照資料庫突變、請 AI 助理整理文獻），各自說明工具接在工作流程的哪一步、怎麼用、接下來做什麼，
+  附上工具的實際輸出與 PyMOL 實際渲染圖；`tests/test_scenarios.py` 會執行這些指令，確認文件中的輸出與工具一致。
+- 範例清單 `examples/btd_uniprot_variants.txt`（生物素酶的 UniProt 天然變異，示範 AFDB 落後 UniProt 序列更新）。
 - 新輸出格式 `--format afdb`：產生可直接貼進 AlphaFold DB 模型頁「自訂標註」的軌跡名稱與位置，位置
   已換算成該模型的編號；依證據分成 OK as written、Fixed strong、Fixed medium、Ambiguous 四條軌跡，
   只有 weak 證據的突變列為未放入。每個位置字串都依 AlphaFold DB 網頁本身的格式規則驗證。
