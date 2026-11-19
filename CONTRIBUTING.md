@@ -25,4 +25,11 @@ python3 -m pytest
   python3 benchmark/run_benchmark.py --cache /path/to/benchmark-cache
   ```
 
+- 修改 Python 介面或輸出格式後，請確認 Colab 範例筆記本仍能執行：
+
+  ```bash
+  python3 -m pip install nbclient nbformat ipykernel pandas
+  python3 scripts/check_notebook.py examples/colab_quickstart.ipynb --local .
+  ```
+
 - 維持工具的範圍：只做編號對應，不重新判讀 pLDDT，也不預測突變的影響。

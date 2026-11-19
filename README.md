@@ -25,9 +25,10 @@
 7. [把結果存成 Excel 可以開的檔案](#7-把結果存成-excel-可以開的檔案)
 8. [在 AlphaFold DB 網頁上標出正確位置](#8-在-alphafold-db-網頁上標出正確位置)
 9. [在 ChimeraX 中標出正確位置](#9-在-chimerax-中標出正確位置)
-10. [常見問題](#10-常見問題)
-11. [這個工具不做的事](#11-這個工具不做的事)
-12. [引用與授權](#12-引用與授權)
+10. [在 Python 或 Jupyter／Colab 中使用](#10-在-python-或-jupytercolab-中使用)
+11. [常見問題](#11-常見問題)
+12. [這個工具不做的事](#12-這個工具不做的事)
+13. [引用與授權](#13-引用與授權)
 
 ---
 
@@ -466,7 +467,49 @@ python3 -m af_confidence -f my_variants.txt --format chimerax > markers.cxc
 
 ---
 
-### 10. 常見問題
+### 10. 在 Python 或 Jupyter／Colab 中使用
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/wangnick1004/af-confidence/blob/main/examples/colab_quickstart.ipynb)
+
+**最快的方式：** 按上面的「Open in Colab」按鈕，在瀏覽器中直接執行範例筆記本，不需要在自己的電腦上安裝任何東西。筆記本示範了檢查清單、用 pandas 整理結果、產生 AFDB 自訂標註和 ChimeraX 腳本，以及上傳自己的清單。
+
+在自己的 Python 或 Jupyter 中使用，先用[第 3 節方式 D](#方式-d安裝成指令進階)安裝，然後：
+
+```python
+import af_confidence as afc
+
+# 一個蛋白質
+report = afc.check("HBB", ["E6V"])
+print(afc.to_text(report))                 # 和命令列一樣的文字報告
+
+# 一整份清單：{蛋白質: 突變}，或清單檔的路徑；同一個蛋白質會自動合併
+reports = afc.check_list({"HBB": ["E6V"], "SERPINA1": ["E342K", "E264V"]})
+reports = afc.check_list("my_variants.txt")
+
+# 整理成表格
+rows = afc.to_records(reports)             # 不需要其他套件：每個突變一個 dict
+df = afc.to_dataframe(reports)             # pandas DataFrame（需要 pandas）
+
+# 工作流程整合
+print(afc.afdb_tracks(reports))            # 貼進 AlphaFold DB（第 8 節）
+with open("markers.cxc", "w") as fh:       # 在 ChimeraX 中開啟（第 9 節）
+    fh.write(afc.chimerax_script(reports))
+```
+
+| 函式 | 用途 |
+|---|---|
+| `check(蛋白質, 突變)` | 檢查一個蛋白質的突變；突變可以是清單或一個字串（`"E342K, E264V"`） |
+| `check_list(清單)` | 檢查整份清單；可傳入 `{蛋白質: 突變}`、`[(蛋白質, 突變), ...]` 或清單檔路徑。清單檔只有突變時，用 `protein="APP"` 指定蛋白質 |
+| `to_text(結果)` | 和命令列相同的文字報告 |
+| `to_records(結果)` | 每個突變一列：狀態、模型上的胺基酸、pLDDT，以及最佳建議的位置（`best_position`）、種類、強度、pLDDT。加上 `detail="suggestion"` 則每個建議一列 |
+| `to_dataframe(結果)` | 同上，回傳 pandas DataFrame |
+| `afdb_tracks(結果)`、`chimerax_script(結果)` | 第 8、9 節的兩種輸出 |
+
+每個函式都可以加上 `cache=`、`offline=True`、`organism=` 等設定，用法和命令列選項相同。蛋白質查不到時不會中斷，而是記錄在結果的 `error` 欄位；清單格式錯誤則會引發 `InputError`。
+
+---
+
+### 11. 常見問題
 
 **Q：出現 `command not found: python3` 或「找不到指令」**
 A：電腦沒有安裝 Python，或 Windows 使用者沒有改用 `py`。見[第 2 節](#2-準備確認電腦有-python)。
@@ -503,7 +546,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ---
 
-### 11. 這個工具不做的事
+### 12. 這個工具不做的事
 
 - **不判斷突變是否致病。** AFDB 的模型是正常（野生型）蛋白質，看不出突變後的結構變化。
 - **不重新評估結構的可信度。** pLDDT 照 AFDB 原值顯示。
@@ -515,7 +558,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 
 ---
 
-### 12. 引用與授權
+### 13. 引用與授權
 
 - 結構預測資料來自 AlphaFold Protein Structure Database（EMBL-EBI 與 Google DeepMind），採用 CC-BY-4.0 授權。使用結果時，請引用 AlphaFold 與 AlphaFold DB 的論文。
 - 加工標註與序列資料來自 UniProt。
@@ -579,7 +622,7 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 | 最終檢查 | 從全新 clone 驗證整個 repo | 修正 AFDB 查無模型時未快取（離線結果不一致）、驗證抽樣在不同執行間不穩定兩個問題 |
 | 開源配備 | 自動測試、版本發布、測試補強 | GitHub Actions（3 種作業系統 × 5 個 Python 版本，加每週的線上 API 檢查）、CHANGELOG、貢獻指南、v0.1.0 版本標籤；補測試讓覆蓋率從 95% 提高到 99%；修正非 ASCII 字元在 Windows 終端機可能造成當機的問題 |
 
-| 工作流程整合 | 把工具接進研究者使用 AlphaFold 的日常流程 | 調查研究者的日常工作流程（見下一節）；完成兩項整合：AFDB 自訂標註（`--format afdb`），讓校正後的位置直接顯示在 AFDB 官方的結構檢視器上；ChimeraX 腳本（`--format chimerax`），開啟正確的模型並標出位置。ChimeraX 指令依官方使用手冊撰寫 |
+| 工作流程整合 | 把工具接進研究者使用 AlphaFold 的日常流程 | 調查研究者的日常工作流程（見下一節）；完成三項整合：AFDB 自訂標註（`--format afdb`），讓校正後的位置直接顯示在 AFDB 官方的結構檢視器上；ChimeraX 腳本（`--format chimerax`），開啟正確的模型並標出位置（指令依官方使用手冊撰寫）；Python 函式庫介面與 Colab 範例筆記本，讓 Jupyter 使用者能把結果直接放進 pandas 分析 |
 
 `docs/` 中的每日報告保留當天的狀態與查證紀錄，有些說法後來已修正；**以本 README 為準**。
 
@@ -591,19 +634,19 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 |---|---|---|
 | AFDB 自訂標註（`--format afdb`） | 在 AFDB 網站查詢瀏覽 | ✅ 完成（見[第 8 節](#8-在-alphafold-db-網頁上標出正確位置)） |
 | ChimeraX 腳本（`--format chimerax`） | 下載模型、視覺化 | ✅ 完成（見[第 9 節](#9-在-chimerax-中標出正確位置)；尚待在實際 ChimeraX 中測試） |
-| Python 函式庫介面與 Colab 範例 | 批次處理 | 規劃中 |
+| Python 函式庫介面與 Colab 範例 | 批次處理 | ✅ 完成（見[第 10 節](#10-在-python-或-jupytercolab-中使用)；筆記本每週由 CI 實際執行一次） |
 | PyMOL 腳本 | 下載模型、視覺化 | 規劃中 |
 | MCP 伺服器 | AI 助理 | 規劃中 |
 
 ### 驗證方式
 
-- **自動化測試**：137 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- **自動化測試**：154 個，全部離線執行（使用 `data/cache` 中的真實 AFDB 與 UniProt 資料），程式碼覆蓋率 99%；網路行為（重試、404、逾時、快取損壞）用模擬回應測試。每次推送時由 GitHub Actions 在 Linux、macOS、Windows 與 Python 3.9～3.13 上自動執行；另有每週一次對真實 AFDB 與 UniProt API 的檢查，並實際執行一次 Colab 範例筆記本，API 格式改變時會及早發現。自己執行測試：`python3 -m pip install pytest`，再執行 `python3 -m pytest`；參與開發請看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 - **真實資料驗證**：`benchmark/`，固定亂數種子、可重現。
 - **人工核對**：示範案例的 pLDDT 與序列，對照 AFDB 與 UniProt 網站；ProtVar 行為以實際操作截圖記錄。
 
 ### 已知限制與未來規劃
 
-限制見 [這個工具不做的事](#11-這個工具不做的事)。未來可能的方向（尚未排程）：
+限制見 [這個工具不做的事](#12-這個工具不做的事)。未來可能的方向（尚未排程）：
 
 - 上一節列出的其他工作流程整合
 - 網頁介面（靜態頁面，放在 GitHub Pages），讓不用終端機的人也能貼上清單使用
@@ -634,10 +677,10 @@ A：可以，見[第 3 節方式 D](#方式-d安裝成指令進階)。遇到安�
 ```
 af_confidence/  工具本體（突變解析、資料來源、比對邏輯、命令列介面）
 tests/          自動化測試，離線使用 data/cache 的資料
-examples/       示範用的突變清單（APP 的 Aβ 編號、SERPINA1 的對偶基因、多蛋白質清單）
+examples/       示範用的突變清單（APP 的 Aβ 編號、SERPINA1 的對偶基因、多蛋白質清單）與 Colab 範例筆記本
 data/cache/     示範蛋白質的 AFDB 與 UniProt 資料
 benchmark/      用真實 UniProt 突變做的準確度驗證（程式、抽樣資料、結果）
-scripts/        第一天的可行性檢查
+scripts/        第一天的可行性檢查、執行範例筆記本的檢查腳本
 docs/           每日開發報告（記錄當天狀態，以本 README 為準）、示範指令稿、截圖
 .github/        自動測試設定（Linux、macOS、Windows，以及每週的線上 API 檢查）
 ```

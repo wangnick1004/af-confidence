@@ -11,12 +11,18 @@
 - 新輸出格式 `--format chimerax`：產生 ChimeraX 腳本（`.cxc`），以帶版本號的模型編號開啟工具比對用的
   同一個 AlphaFold DB 模型，依四種軌跡為檢查過的位置顯示側鏈、上色、加標籤，並建立具名的選取範圍；
   多個模型時並排顯示。指令依 ChimeraX 官方使用手冊撰寫，尚未在實際的 ChimeraX 中執行過。
+- Python 函式庫介面：`import af_confidence as afc` 後可用 `check`、`check_list`（接受對照表、配對清單或
+  清單檔）、`to_text`、`to_records`、`to_dataframe`（需要 pandas）、`afdb_tracks`、`chimerax_script`；
+  核心仍不需要任何第三方套件。
+- Colab 範例筆記本（`examples/colab_quickstart.ipynb`），可從 README 的「Open in Colab」按鈕直接執行；
+  每週的線上檢查會實際執行一次（`scripts/check_notebook.py`）。
 - AlphaFold 使用者日常工作流程的調查與整合規劃（`docs/workflow_research.md`）。
 - 給非程式背景使用者的中文使用說明，放在 README 開頭：安裝 Python、四種下載方式（git、用 curl
   或 PowerShell 下載 ZIP、用 pip 從 GitHub 安裝）、建立突變清單、看懂輸出與證據強度、存成 Excel、
   常見問題。
 
 ### 變更
+- 清單解析移到獨立模組 `af_confidence/inputs.py`，供命令列與 Python 介面共用。
 - README 改為全中文：中文使用說明併入 README，刪除獨立的 `使用說明.md`；移除與中文重複的英文段落，
   只有英文版才有的資訊先移入中文段落；準確度驗證與檔案結構也翻成中文。
 - 更新紀錄與貢獻指南改為中文。
