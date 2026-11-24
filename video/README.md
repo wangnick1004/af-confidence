@@ -6,15 +6,34 @@
 cd ~/af-confidence/video
 npm install
 npm run studio    # 在瀏覽器開啟 Remotion Studio
-npm run render    # 輸出 out/HbSOpeningEditable.mp4
+npm run render    # 輸出 out/HbSOpeningEditable.mp4（其他段落見下方）
 ```
 
-## 兩個試作
+## 所有動畫（依影片順序）
 
-| 名稱 | 說明 |
-|---|---|
-| `HbSOpeningEditable` | **可編輯版**：每個畫面元素一條軌道，在 Studio 裡直接改 |
-| `HbSOpening` | 第一版試樣，保留做比較；元素無法在 Studio 裡編輯 |
+| 名稱 | 對應設計腳本 | 長度 |
+|---|---|---|
+| `S1Question` | 段 1｜問題（鏡頭 1-1～1-3） | 30 秒 |
+| `S2Tool` | 段 2｜工具與輸入（鏡頭 2-1～2-4） | 50 秒 |
+| `HbSOpeningEditable` | 段 3｜鏡頭 3C'（兩套編號對照） | 32 秒 |
+| `S4Plddt` | 段 4｜pLDDT 分級與 TP53 對比（鏡頭 4-1、4-2） | 46 秒 |
+| `S4ToolOutput` | 段 4｜工具輸出怎麼讀（鏡頭 4-4） | 10 秒 |
+| `S5Limits` | 段 5｜三個限制（鏡頭 5-1～5-3） | 51 秒 |
+| `S5ToolLimit` | 段 5｜工具本身的限制（鏡頭 5-4） | 19 秒 |
+| `S6Outro` | 段 6｜結尾（鏡頭 6-1、6-2） | 20 秒 |
+| `HbSOpening`（「舊版試樣」資料夾） | 第一版試樣，無法在 Studio 編輯 | 32 秒 |
+
+設計腳本見 `docs/video_script.md` 第四節。動畫的時間是照講稿估的，**錄好旁白後，請在 Studio 裡拖動片段對齊旁白**。
+
+輸出單一段動畫：
+
+```bash
+npx remotion render src/index.ts S2Tool out/S2Tool.mp4
+```
+
+## 產生器（`generator/`）
+
+`S1Question`～`S6Outro` 是用 `generator/scenes.py` 產生的初始檔。**產生器只在第一次建立時使用**：重新執行會覆蓋 `src/scenes/` 裡的檔案，包括你在 Studio 做的修改。之後請直接在 Studio 或 `.tsx` 檔裡修改。
 
 ## 在 Studio 裡編輯 `HbSOpeningEditable`
 
